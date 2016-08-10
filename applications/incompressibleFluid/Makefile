@@ -1,5 +1,5 @@
 # working directory: **this should be changed to find it automatically**
-MPM_DIR = /home/cbgeo/Research/mpm_code
+MPM_DIR = /home/cbgeo/Research/MPMcode
 
 # include the common information
 include $(MPM_DIR)/definitions.mk
