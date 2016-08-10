@@ -1,6 +1,6 @@
 # written by Shyamini Kularathna
 
-WORK_DIR = /home/cbgeo/research/MPMcode
+WORK_DIR = /home/cbgeo/research/mpm_code
 
 # compiler/linker
 C_PP = g++

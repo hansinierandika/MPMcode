@@ -1,5 +1,5 @@
 # working directory: **this should be changed to find it automatically**
-MPM_DIR = /home/shyamini/Research/My-MPM-Code/mpmCAMExplicit
+MPM_DIR = /home/cbgeo/Research/mpm_code
 
 # include the common information
 include $(MPM_DIR)/definitions.mk
