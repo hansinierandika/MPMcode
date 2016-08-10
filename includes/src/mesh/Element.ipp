@@ -1,0 +1,47 @@
+
+mpm::Element::Element(const unsigned& id) {
+    elemId_ = id;
+    elemElemsId_.clear();
+    elemParticleDensity_ = 0.;
+}
+
+
+void mpm::Element::compute_centre_coordinates() {
+    elemCentreCoord_ = VectorDDIM::Zero();
+
+    // Algorithm for centre coordinates
+    for (unsigned i = 0; i < numNodes; i++)
+        elemCentreCoord_ += elemNodesPtr_(i) -> give_node_coordinates();
+    elemCentreCoord_ /= numNodes;
+
+    //Algorithm for element length : Only for 2D
+    VectorDDIM nFirstCoord = elemNodesPtr_(0) -> give_node_coordinates();
+    VectorDDIM nCornerCoord = elemNodesPtr_(2) -> give_node_coordinates();
+    for (unsigned i = 0; i < dim; i++)
+        elemLength_(i) = std::fabs(nCornerCoord(i) - nFirstCoord(i)); 
+
+    // element volume is used in defining free surface nodes
+    double elemVolume_ = 0;
+    if (dim == 2)
+        elemVolume_ = elemLength_(0) * elemLength_(1) * 1;
+    if (dim == 3)
+        elemVolume_ = elemLength_(0) * elemLength_(1) * elemLength_(2);
+}
+
+void mpm::Element::initialise_element() {
+    elemParticleDensity_ = 0.;
+}
+
+
+void mpm::Element::set_element_nodes(const unsigned& i, const unsigned& nId, NodePtr nPtr) {
+    elemNodesId_(i) = nId;
+    elemNodesPtr_(i) = nPtr;
+}
+
+
+void mpm::Element::set_element_elements(const unsigned& eId) {
+    elemElemsId_.push_back(eId);
+}
+
+
+

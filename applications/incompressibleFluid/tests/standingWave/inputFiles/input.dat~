@@ -1,0 +1,5 @@
+gravityFlag             1
+freeSurfaceFlag         0
+dt                      0.0001
+numOfSteps              100000
+numOfSubStep            100

@@ -1,0 +1,232 @@
+template<typename FP>
+void mpm::Mesh::iterate_over_elements(FP function) const {
+  std::for_each(elements_.begin(), elements_.end(), function);
+  return;
+}
+
+template<typename FP>
+void mpm::Mesh::iterate_over_nodes(FP function) const {
+  std::for_each(nodes_.begin(), nodes_.end(), function);
+  return;
+}
+
+template<typename FP>
+void mpm::Mesh::iterate_over_elements_of_p(FP function) const {
+  std::for_each(p_element_set_.begin(), p_element_set_.end(), function);
+  return;
+}
+
+template<typename FP>
+void mpm::Mesh::iterate_over_nodes_of_p(FP function) const {
+  std::for_each(p_node_set_.begin(), p_node_set_.end(), function);
+  return;
+}
+
+
+void mpm::Mesh::initialise_mesh() {
+  p_element_set_.clear();
+  p_node_set_.clear();
+  for (const auto& elem : elements_)
+    elem->initialise_element();
+  for (const auto& node : nodes_)
+    node->initialise_node();
+}
+
+void mpm::Mesh::free_memory() {
+  for (auto ePtr : elements_)
+    delete ePtr;
+  for (auto nPtr : nodes_)
+    delete nPtr;
+  elements_.clear();
+  nodes_.clear();
+  p_element_set_.clear();
+  p_node_set_.clear();
+}
+
+
+mpm::Mesh::Mesh(std::ifstream& mesh_data_file) {
+
+    std::string line;
+
+    std::getline(mesh_data_file, line);
+    std::istringstream input_mesh_space(line);
+    for (unsigned i = 0; i < dim; i++)
+        input_mesh_space >> mesh_spacing_(i);
+
+    std::getline(mesh_data_file, line);
+    std::istringstream input_num_elem(line);
+    for (unsigned i = 0; i < dim; i++)
+        input_num_elem >> num_elements_(i);
+
+    std::getline(mesh_data_file, line);
+    std::istringstream input_corner_elem(line);
+    for (unsigned i = 0; i < numCorners; i++) 
+        input_corner_elem >> corner_elements_(i);
+
+    std::getline(mesh_data_file, line);
+    std::istringstream input_corner_node(line);
+    for (unsigned i = 0; i < numCorners; i++)
+        input_corner_node >> corner_nodes_(i);            
+
+}
+
+
+void mpm::Mesh::read_nodes_and_elements(std::ifstream& node_file, std::ifstream& elem_file) {
+
+    std::string line;
+
+    // Read Nodes
+    unsigned num_nodes;
+    if(!std::getline(node_file, line)) {
+        std::cerr << "ERROR: reading file" << "\n";
+        abort();
+    } 
+    std::istringstream input_num_nodes(line);
+    input_num_nodes >> num_nodes;
+
+    for (unsigned i = 0; i < num_nodes; i++) {
+        if (!std::getline(node_file, line)) {
+            std::cerr << "ERROR: reading file" << "\n";
+            abort();
+        }
+        mpm::Node* node = new mpm::Node(line,i);
+        nodes_.push_back(node);
+    }
+
+    // Read Elements
+    unsigned num_elements;
+    if(!std::getline(elem_file, line)) {
+        std::cerr << "ERROR: reading file" << "\n";
+        abort();
+    }
+    std::istringstream input_num_elems(line);
+    input_num_elems >> num_elements;
+
+    for (unsigned i = 0; i < num_elements; i++) {
+        mpm::Element* element = new mpm::Element(i);
+        if (!std::getline(elem_file, line)) {
+               std::cerr << "ERROR: reading file" << "\n";
+               abort();
+        }
+        std::istringstream input_elem_nodes(line);
+        for (unsigned j = 0; j < numNodes; j++) {
+            unsigned node_Id;
+            input_elem_nodes >> node_Id;
+            element->set_element_nodes(j, node_Id, nodes_.at(node_Id));
+        }
+        elements_.push_back(element);
+    }
+
+    first_node_coord_ = nodes_.at(corner_nodes_(0)) -> giveNodeCoordinates();
+    last_node_coord_  = nodes_.at(corner_nodes_(3)) -> giveNodeCoordinates();
+}
+
+
+void mpm::Mesh::read_general_constraints(std::ifstream& vel_con_file) {
+
+    std::string line;
+    unsigned num_vel_con_nodes, num_pres_con_nodes;
+    unsigned node_id, direction;
+    double value;
+
+    std::getline(vel_con_file, line);
+    std::istringstream input_nums(line);
+    input_nums >> num_vel_con_nodes >> num_pres_con_nodes;
+
+    for (unsigned i = 0; i < num_vel_con_nodes; i++) {
+        std::getline(vel_con_file, line);
+        std::istringstream input_vel_con(line);
+        input_vel_con >> node_id >> direction;
+        input_vel_con >> value;
+        nodes_.at(node_id) -> set_velocity_constraints(direction, value); 
+    }
+  
+    for (unsigned i = 0; i < num_pres_con_nodes; i++) {
+        std::getline(vel_con_file, line);
+        std::istringstream input_pres_con(line);
+        input_pres_con >> node_id >> value;
+        nodes_.at(node_id) -> set_pressure_constraints(value);
+    }
+
+}
+
+
+void mpm::Mesh::locate_particles_in_mesh(mpm::MpmParticle* &particle_set) {
+
+    unsigned num_particles = particle_set->number_of_particles();
+
+    // "elemGrid" is the vecotor holding the element grid which containes
+    // the particle
+    Eigen::Matrix<int, 1 , dim> elem_grid;
+
+    for (unsigned i = 0; i < num_particles; i++) {
+        Eigen::Matrix<double, 1 , dim> p_coords = particle_set->particle_coordinates(i);
+        for (unsigned j = 0; j < dim; j++)
+            elem_grid(j) = std::fabs((p_coords(j) - first_node_coord_(j)) / mesh_spacing_(j));
+        check_particle_is_inside_mesh(elem_grid, i);
+        unsigned elem_id;
+        if (dim == 2)
+            elem_id = std::fabs(elem_grid(0) + (num_elements_(0) * elem_grid(1)));
+        if (elem_id > corner_elements_(3) || elem_id < corner_elements_(0)) {
+            std::cerr << "ERROR: in computing element id for particle " << i << "\n";
+            abort();
+        }
+
+        mpm::Particle* pPtr = particle_set->pointer_to_particle(i);
+        set_elements_and_nodes_of_particles(elem_id, pPtr);
+    }
+
+}
+
+void mpm::Mesh::check_particle_is_inside_mesh(Eigen::Matrix<int, 1 , dim> &eGrid, unsigned &pId) {
+
+    for (unsigned i = 0; i < dim; i++) {
+        if (eGrid(i) < 0 || eGrid (i) >= num_elements_(i)) {
+            std::cerr << "ERROR: Particle " << pId << " is out of mesh" << "\n";
+            abort();
+        }
+    }
+}
+
+
+void mpm::Mesh::set_elements_and_nodes_of_particles(unsigned &elementId, mpm::Particle* &particlePtr) {
+    mpm::Element* ePtr = elements_.at(elementId);
+    p_element_set_.insert(ePtr);
+
+    Eigen::Matrix<mpm::Node*, 1, numNodes> nPtrs = ePtr->give_element_node_ptrs();
+    for (unsigned i = 0; i < numNodes; i++) 
+        p_node_set_.insert(nPtrs(i));
+
+    particlePtr->set_element_and_nodes(ePtr, nPtrs);
+}
+
+
+/*
+void mpm::Mesh::define_free_surface_nodes() {
+
+    for (const auto& i : pElementSet_) {
+        // ## first, start assuming the element is in free surface ######
+        bool freeElement = true;
+        // ## get elements arround the element considered ###############
+        std::vector<unsigned> elementsOfE = i -> giveIDElementsOfElem();
+        // ## check whether each element around the element considered ##
+        // ## contains particles ######################################## 
+        for (unsigned j = 0; j < elementsOfE.size(); j++) {
+            unsigned elemID = elementsOfE.at(j);
+            // ## if any of the connected elements is empty #############
+            // ## the considered element is taken as free Element #######
+            if (!elements_.at(elemID) -> giveParticleDensityOfElem()) {
+                freeElement = false;
+                break;
+            }
+        }
+        // ## if the element is free, all its nodes are set to free #####
+        // ## i.e. pressure constraints of nodes are set to value of 0 ##
+        double pressureConstraint = 0.;
+        if (!freeElement)
+            i -> setElementNodesPressureConstraints(pressureConstraint);
+    }
+}
+*/
+
+

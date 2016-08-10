@@ -1,0 +1,132 @@
+/*************************************************************************
+                        Material Point Method
+                       Author: Shyamini Kularathna
+                         University of Cambridge
+FILE: MPMSolver.hpp
+**************************************************************************/
+#ifndef MPM_MPMSOLVER_H
+#define MPM_MPMSOLVER_H 
+                                                                         
+// c++ header files
+#include <cstdlib>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <sstream> 
+
+// boost header files
+#include <boost/filesystem.hpp>
+
+// mpm miscellaneous header files
+#include "Verify.hpp"
+#include "PropertyParse.hpp"
+
+// mpm main header files
+#include "Mesh.hpp"
+#include "MpmParticle.hpp"
+#include "MaterialBase.hpp"
+#include "ReadMaterial.hpp"
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+namespace mpm {
+    class MpmSolver;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::MpmSolver {
+
+protected:
+    typedef boost::filesystem::path path_;
+
+    // TYPEDEF FOR MPM CLASS OBJECT POINTERS
+    typedef mpm::Mesh*          MeshPtr;
+    typedef mpm::MpmParticle*   ParticleSetPtr;
+
+
+       //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                               // FUNCTIONS
+
+    //%%%%%%%%%%%%% BASIC MPM FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%
+public:
+    // CONSTRUCTOR
+    MpmSolver(path_& p);
+
+    // READ THE MODEL (MESH, PARTICLES, CONSTRAINTS, ETC...)
+    void ReadModel();
+
+    // INITIALISE ALL
+    void InitialiseAll();
+
+    // SEARCH AND LOCATE PARTICLES
+    void SearchAndLocateParticles();
+
+    // SET PARTICLE INITIAL VELOCITY FROM THE GRID
+    void ApplyParticleInitialVelocity();
+
+    // MAP DATE TO GRID
+    void MapDataToGrid();
+
+    // UPDATE THE SYSTEM
+    void UpdateTheSystem();
+
+
+    // %%%%%%%%%%% EXPLICIT SOLVERS %%%%%%%%%%%%%%%%%%%%%%%%
+
+    // SOLVE WEAKLY INCOMPRESSIBLE FLUID FLOW PROBLEM : USF
+    void SolveIncompressibleFluidUSF();
+
+    // SOLVE WEAKLY INCOMPRESSIBLE FLUID FLOW PROBLEM : USL
+    void SolveIncompressibleFluidUSL();
+
+
+    // %%%%%%%%%% WRITE DATA TO FILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    void WriteData(unsigned& step); 
+
+
+    // %%%%%%%%%%% PRIVATE FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+private:
+    // P1. READ MPM MAIN PARAMETERS FROM THE INPUT FILE
+    void ReadMainParameters();
+
+
+public:
+    std::ifstream inputStream;
+    std::ifstream nodeStream;
+    std::ifstream elementStream;
+    std::ifstream meshDataStream;
+    std::ifstream particleStream;
+    std::ifstream materialStream;
+    std::ifstream iStressStream;
+    std::ifstream velConstraintStream;
+    std::ifstream fricConstraintStream;
+    std::ifstream feedParticleStream;
+
+    std::string ResultsDir;
+
+    // MAIN PARAMETERS
+    // %%%% FLAGS %%%%
+    bool gravity;
+    bool freeSurface;
+
+    double dt;
+    unsigned numOfTotalSteps;
+    unsigned numOfSubSteps;
+
+    // POINTERS TO ALL MATERIALS
+    std::vector<mpm::material::MaterialBase*> materials;
+
+    // OBJECTS FOR MESH AND PARTICLES
+    // following approach used to store one set of mesh and particles
+    MeshPtr mesh_;
+    mpm::MpmParticle particle_;
+    // following approach used to store different meshes and particle sets
+       // std::vector<MeshPtr> mesh_;
+       // std::vector<ParticleSetPtr> particle_;
+};
+
+#include "MPMSolver.ipp"
+
+#endif

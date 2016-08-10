@@ -1,0 +1,113 @@
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F1. FUNCTION: CONSTRUCTOR
+          store the particle id and spacing
+        # add material pointer to store particle properties (density etc..)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+mpm::Particle::Particle(unsigned& id, unsigned& matID, VectorDDIM& spacing, bool G) : mpm::ParticleFunction(id) {
+    particleMatID_ = matID;
+    particleSpacing_ = spacing;
+    particleGravity_ = VectorDDIM::Zero();
+    if (G)
+        particleGravity_(dim -1) = -9.81;
+
+    // ## Particle Parameters are set to zero initially
+    // ## to avoid errors due to any garbage values
+    particleMass_ = 0.;
+    particleVelocity_ = VectorDDIM::Zero();
+    particlePressure_ = 0.;
+    particleStress_ = VectorDDOF::Zero();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F2. FUNCTION: INITIALISE PARTICLES
+          This function initialises particle at start of each time step
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Particle::initialiseParticle() {
+    particleNodes_ = VectorNPtrNN::Zero();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+P1. FUNCTION: COMPUTE PARTICLE MASS
+          This function computes the mass of the particle
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Particle::computeParticleMass() {
+    if (dim == 2)
+        particleMass_ = particleDensity_ * particleSpacing_(0)* particleSpacing_(1) * 1.;
+    if (dim == 3)
+        particleMass_ = particleDensity_ * particleSpacing_(0)* particleSpacing_(1) * particleSpacing_(2);
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F3. FUNCTION: MAP PARTICLE MASS TO GRID NODES
+          This function map the particle mass to grid nodes
+          M_i = sum (m_p N_i(x_p))
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Particle::mapParticleMassToNodes() {
+    double nodeMass = 0.;
+    for (unsigned i = 0; i < numNodes; i++) {
+        nodeMass = particleMass_ * shapeFun_(i);
+        particleNodes_(i) -> assignNodalMass(nodeMass);
+    }
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F4. FUNCTION: MAP PARTICLE MOMENTUM TO GRID NODES
+          This function map the particle momentum to grid nodes
+          P_i = sum (P_p N_i(x_p)) 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/ 
+void mpm::Particle::mapParticleMomentumToNodes() {
+    VectorDDIM nodeMomentum = VectorDDIM::Zero();
+    for (unsigned i = 0; i < numNodes; i++) {
+        nodeMomentum = particleMass_ * particleVelocity_ * shapeFun_(i);
+        particleNodes_(i) -> assignNodalMomentum(nodeMomentum);
+    }
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F5. FUNCTION: MAP PARTICLE PRESSURE TO GRID NODES
+          This function map the particle pressure * mass to grid nodes
+          p_i * M_i = sum (p_p * m_p * N_i(x_p)) 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Particle::mapParticlePressureToNodes() {
+    double nodePressure = 0.;
+    for (unsigned i = 0; i < numNodes; i++) {
+        nodePressure = particlePressure_ * particleMass_ * shapeFun_(i);
+        particleNodes_(i) -> assignNodalPressureTimesMass(nodePressure);
+    }
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F6. FUNCTION: MAP PARTICLE GRAVITY FORCE TO GRID NODES
+          This function map the particle gravity force to grid nodes
+          g_i = sum (m_p * g_p * N_i(x_p))
+          ** This function is used only when the gravity forces are computed
+          ** at the nodes. I.e. in spatiall discretisation of the govering
+          ** equation, the body force term is taken to be known at nodes
+          ** see documentation for further details
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Particle::mapParticleGravityToNodes() {
+    VectorDDIM nodeGravity = 0.;
+    for (unsigned i = 0; i < numNodes; i++) {
+        nodeGravity = particleGravity_ * particleMass_ * shapeFun_(i);
+        particleNodes_(i) -> assignNodalGravity(nodeGravity);
+    }
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F9. FUNCTION: BUILD ELEMENT LOCAL PROJECTION MATRICES
+              This function call functions to compute entries in element
+              local matrices for the Chorin's projection for solving
+              incompressible materials
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Particle::buildElementProjectionMatrices() {
+
+    double viscosity_ = material_ -> giveViscosity();
+
+    computeElementMassMatrix(particleMass_, particleDensity_);
+    computeElementLaplaceMatrix(particleMass_, particleDensity_);
+    computeElementGradMatrix(particleMass_, particleDensity_);
+    computeElementViscousMatrix(particleMass_, particleDensity_, viscosity_);
+}

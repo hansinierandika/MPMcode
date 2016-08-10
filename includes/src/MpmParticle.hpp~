@@ -1,0 +1,125 @@
+/*****************************************************************************
+                        Material Point Method
+                         Shyamini Kularathna
+                       University of Cambridge
+FILE: MpmParticle.hpp
+*****************************************************************************/
+#ifndef MPM_MPMPARTICLE_H
+#define MPM_MPMPARTICLE_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+// boost header files
+#include <boost/numeric/ublas/vector.hpp>
+
+// eigen header files
+#include <Eigen/Dense>
+
+// mpm header files
+#include "Constants.hpp"
+#include "Particle.hpp"
+#include "Node.hpp"
+#include "Element.hpp"
+#include "MaterialBase.hpp"
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+namespace mpm {
+    class MpmParticle;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::MpmParticle {
+
+protected:
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+    static const unsigned dof = 3*(dim-1);
+
+    // TYPEDEF FOR MPM CLASSES
+    typedef mpm::Particle* ParticlePtr;
+    typedef mpm::material::MaterialBase* MaterialBasePtr;
+
+    typedef std::vector<MaterialBasePtr> VecOfMaterialBasePtr;
+
+    // TYPEDEF FOR EIGEN ROW VECTORS
+    typedef Eigen::Matrix<double, 1, dim> VectorDDIM;
+    typedef Eigen::Matrix<double, 1, dof> VectorDDOF; 
+
+       //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                          // MEMBER FUNCTIONS
+
+    // %%%%%%%%%% GENERAL MPM FUNCTIONS %%%%%%%%%%%%%%%%%%%
+public:
+    // F1. CONSTRUCTOR: read particles
+    MpmParticle();
+
+    // F2. READ PARTICLE DATA
+    void readParticles(std::ifstream& pFile, std::ifstream& sFile, bool g);
+
+    // F3. ASSIGN THE MATERIAL TO PARTICLES
+    void assignMaterialToParticles(VecOfMaterialBasePtr& materialPtrs);
+
+    // F4. INITIALISE PARTICLES
+    void initialiseParticles();
+
+    // F5. COMPUTE SHAPE FUNCTIONS AT PARTICLES
+    void computeShapeFunctionsAtParticles();
+
+    // F6. MAP PARTICLE DATA TO GRID
+    void mapParticleDataToGrid();
+
+    // F7. MAP PARTICLE GRAVITY TO GRID
+    void mapParticleGravityToGrid();
+
+    // F8. ASSIGN EXTERNAL FORCES TO GRID
+    void assignExternalForcesToGrid();
+
+    // F9. COMPUTE STRAIN AT PARTICLES
+    void computeStrain();
+
+    // F10. COMPUTE STRESS AT PARTICLES
+    void computeStress();
+
+   // %%%%%%%%%%%% GIVE VALUES %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    // G1. GIVE TOTAL NUMBER OF PARTICLES
+    unsigned numberOfParticles() {
+        return particles_.size();
+    }
+
+    // G2. GIVE POINTER TO THE GIVEN PARTICLE
+    ParticlePtr pointerToParticle(unsigned& id) {
+        return particles_.at(id);
+    }
+
+    // G3. GIVE COORDINATES OF THE GIVEN PARTICLE
+    VectorDDIM particleCoordinates(unsigned& id) {
+        VectorDDIM pCoord = particles_.at(id) -> giveParticleCoordinates();
+        return pCoord;
+    }
+
+    // %%%%%%%%%% PROJECTION FUNCTIONS %%%%%%%%%%%%%%%%%
+
+    // F12. MAP PARTICLE PRESSURE TO GRID
+    void mapParticlePressureToGrid();
+
+    // F13. COMPUTE ELEMENT LOCAL MATRICES
+    void computeElementProjectionMatrix(bool gravityAtNodes); 
+
+       //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                          // MEMBER VARIABLES 
+
+    // 1. Pointers to the all particles
+    std::vector<ParticlePtr> particles_;
+};
+
+#include "MpmParticle.ipp"
+
+#endif

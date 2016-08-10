@@ -1,0 +1,7 @@
+numOfParticles  materialID
+spacing-x       spacing-y       spacing-z(3D only)
+coord_x         coord-y         coord-z(3D only)
+coord-x         coord-y         coord-z
+ .               .              .
+ .               .              .
+ .               .              .

@@ -1,0 +1,54 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         University Of Cambridge
+File: ElementMatrix.hpp
+****************************************************************************/
+#ifndef MPM_ELEMENTMATRIX_H
+#define MPM_ELEMENTMATRIX_H
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+// eigen header files
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+
+// mpm header files
+#include "Constants.hpp"
+#include "Node.hpp"
+
+namespace mpm {
+    class ElementMatrix;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::ElementMatrix {
+
+protected:
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+
+    typedef Eigen::Matrix<double, numNodes, numNodes> MatrixDNN;
+
+public:
+
+    // 1. CONSTRUCTOR
+    ElementMatrix();
+
+    // 2. INITIALISE ELEMENT MATRIX
+    void initialiseElementMatrix();
+
+public:
+    MatrixDNN massMatrixE_;
+    MatrixDNN laplaceMatrixE_;
+
+};
+
+#include "ElementMatrix.ipp"
+
+#endif

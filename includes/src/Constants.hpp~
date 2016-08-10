@@ -1,0 +1,9 @@
+#ifndef MPM_CONSTANTS_H
+#define MPM_CONSTANTS_H
+
+namespace mpm {
+    namespace constants{
+        const unsigned DIM = 2;
+        const unsigned NUMNODES = 4;
+    }
+}

@@ -1,0 +1,65 @@
+/***************************************************************************
+File: Mesh.ipp
+****************************************************************************/
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F1. FUNCTION: CONSTRUCTOR 
+          This function initialise the main containers to zero elements
+          ## This function can also be changed to read nodes and elements
+          ## instead of using a seperate function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+mpm::Mesh::Mesh(std::ifstream& meshFile) : mpm::MeshFunctions(meshFile) {
+    elements_.clear();
+    nodes_.clear();
+    initialiseMeshFunctions();
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F2. FUNCTION: COMPUTE ELEMENT CENTRE COORDINATES
+          This function call element compute centre coordinates functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Mesh::computeElementCentreCoordinates() {
+    for (auto i : elements_)
+        i -> computeCentreCoordinates();
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F3. FUNCTION: INITIALISE MESH
+          This function clears the containers to start a new time step
+          1. clears the elements which have particles
+          2. clears the nodes which have particles
+          3. call element initialise function
+          4. call node initialise function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Mesh::initialiseMesh() {
+
+    for (auto i : elements_)
+        i -> initialiseElement();
+    for (auto i : nodes_)
+        i -> initialiseNode();
+
+    initialiseMeshFunctions();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F4. FUNCTION: COMPUTE NODE VELOCITIES FROM NODE MOMENTUM VALUES
+              Thid function call to nodal functions to compute nodal velocity
+              from the nodal momentum
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Mesh::computeVelocityFromMomentumAtNodes() {
+    for (auto i : nodes_)
+        i -> computeNodalVelocityFromMomentum();
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F5. FUNCTION: COMPUTE NODE PRESSURE FROM PRESSURE TIMES MASS VALUES
+              Thid function call to nodal functions to compute nodal pressure
+              from the nodal pressure times mass values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Mesh::computePressureFromMappedPressureAtNodes() {
+    for (auto i : nodes_)
+        i -> computeNodalPressureFromMappedPressure();
+}
+
+

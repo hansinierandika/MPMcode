@@ -1,0 +1,236 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         University Of Cambridge
+File: Particle.hpp
+****************************************************************************/
+#ifndef MPM_PARTICLE_H
+#define MPM_PARTICLE_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+// boost header files
+#include <boost/numeric/ublas/vector.hpp>
+
+// eigen header files
+#include <Eigen/Dense>
+
+// header file wich inclued MPM input parameters
+#include "PropertyParse.hpp"
+
+// mpm header files
+#include "Constants.hpp"
+#include "Node.hpp"
+#include "Element.hpp"
+#include "ParticleFun.hpp"
+#include "MaterialBase.hpp"
+
+namespace mpm {
+    class Particle;
+}
+
+class mpm::Particle : public mpm::ParticleFunction {
+
+protected:
+
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+    static const unsigned dof = 3 * (dim - 1);
+
+    typedef mpm::Element* ElementPtr;
+    typedef mpm::Node* NodePtr;
+    typedef mpm::material::MaterialBase* MaterialBasePtr;
+
+    typedef Eigen::Matrix<double, 1, dim>        VectorDDIM;
+    typedef Eigen::Matrix<double, 1, dof>        VectorDDOF;
+    typedef Eigen::Matrix<double, 1, 6>          VectorD1x6;
+    typedef Eigen::Matrix<NodePtr,1, numNodes>   VectorNPtrNN;
+ 
+    typedef Eigen::Matrix<double, dim, dim>      MatrixDDIMDIM;
+    typedef Eigen::Matrix<double, dof, dim>      MatrixDDOFDIM;
+    typedef Eigen::Matrix<double, numNodes, dim> MatrixDNNDIM;
+
+    typedef std::vector<MaterialBasePtr>         VecOfMaterialBasePtr;
+    typedef std::vector<MatrixDDOFDIM>           VecOfMatDDOFDIM;
+
+public:
+
+    // CONSTRUCTOR
+    Particle(const unsigned& id, const unsigned& matID, const VectorDDIM& spacing);
+
+    // INITIALISE PARTICLES
+    void initialiseParticle();
+
+    // SET PARTICLE INITIAL STRESS
+    void setParticleInitialStress(const VectorD1x6& stress);
+
+    // SET THE PARTICLE MATERIAL
+    void setParticleMaterial(VecOfMaterialBasePtr materials);
+
+    // SET PARTICLE INITAL VELOCITY FROM THE GRID: IF ANY
+    void setParticleInitialVelocity();
+
+
+    // MAP PARTICLE MASS TO GRID NODES
+    void mapParticleMassToNodes();
+
+    // MAP PARTICLE MOMENTUM TO GRID NODES
+    void mapParticleMomentumToNodes();
+
+    // MAP PARTICLE MOMENTUM TO GRID NODES : AT BEGINING OF TIME STEP
+    void mapParticleMomentumToNodesAtBeginOfTimeStep();
+
+    // MAP PARTICLE MOMENTUM TO GRID NODES : AT END OF TIME STEP
+    void mapParticleMomentumToNodesAtEndOfTimeStep();
+
+    // MAP PARTICLE PRESSURE TO GRID NODES
+    void mapParticlePressureToNodes();
+
+
+    // ASSIGN BODY FORCE TO NODES
+    void assignBodyForceToNodes();
+
+    // ASSIGN TRACTION FORCE TO NODES
+    void assignTractionForceToNodes();
+
+    // ASSIGN INTERNAL FORCE TO NODES
+    void assignInternalForceToNodes();
+
+
+    // %%%%%%%%%% COMPUTE STRAIN AT PARTICLES %%%%%%%%%%%%%%%%%
+
+    // COMPUTE STRAIN AT PARTICLES : NOT ENAHANCED
+    void computeParticleStrain();
+
+    // COMPUTE STRAIN AT THE CENTRE OF THE ELEMENT
+    void computeParticleStrainCentreOfE();
+
+    // COMPUTE ENHANCED STRAIN AT PARTICLES : B-BAR ENHANCED
+    void computeParticleStrainBBarMethod();
+
+    // COMPUTE PRINCIPLE STRAIN
+    void computeParticlePrincipleStrain(const VectorDDOF& strain);
+
+
+    // COMPUTE STRESS : FROM NOT-ENHANCED STRAIN
+    void computeParticleStress();
+
+    // COMPUTE STRESS : FROM BBAR-ENHANCED STRAIN
+    void computeParticleStressBBarMethod();
+
+    
+    // UPDATE PARTICLE  VELOCITY
+    void updateVelocity(const double& dt);
+
+    // UPDATE PARTICLE POSITION
+    void updatePosition(const double& dt);
+
+    // UPDATE PARTICLE DENSITY
+    void updateDensity();
+
+    // UPDATE PARTICLE PRESSURE
+    void updatePressure();
+
+
+    // GIVE PARTICLE MATERIAL ID
+    unsigned giveParticleMatId() const {
+        unsigned particleMatID_;
+    }
+
+    // GIVE PARTICLE VELOCITY
+    VectorDDIM giveParticleVelocity() const {
+        return particleVelocity_;
+    }
+
+
+    // WRITE VELOCITY TO FILE
+    void writeVelocity(std::ostream& oFile);
+
+    // WRITE PRESSURE TO FILE
+    void writePressure(std::ostream& oFile);
+
+    // WRITE STRESS TO FILE
+    void writeStress(std::ostream& oFile);
+
+    // WRITE STRAIN TO FILE
+    void writeStrain(std::ostream& oFile);
+
+private:
+    // COMPUTE PARTICLE MASS
+    void computeParticleMass();
+
+
+protected:
+
+    // MATERIAL ID
+    unsigned particleMatID_;
+    // MATERIAL POINTER
+    MaterialBasePtr material_;
+    // GRAVITy
+    VectorDDIM particleGravity_;
+
+    // MASS 
+    double particleMass_;
+    // VELOCITY 
+    VectorDDIM particleVelocity_;
+    // PRESSURE :
+    double particlePressure_;
+    // DENSITY   
+    double particleDensity_;
+
+    // STRESS 
+    VectorD1x6 particleStress_;
+    // STRAIN 
+    VectorDDOF particleStrain_;
+    // STRAINRATE 
+    VectorDDOF particleStrainRate_;
+
+    // STRAIN-BBAR
+    VectorDDOF particleStrainBBar_;
+    // STRAINRATEBBAR
+    VectorDDOF particleStrainRateBBar_;
+
+    // STRAIN-CENTRE OF ELEMENT
+    VectorDDOF particleStrainCentre_;
+    // STRAINRATE-CENTRE OF ELEMENT
+    VectorDDOF particleStrainRateCentre_;
+
+    // PRINCIPLE STRAIN
+    VectorDDIM particlePrincipleStrain_;
+    // VOLUMETRIC STRAIN
+    double dVolStrain_;
+
+
+    // ID
+    using mpm::ParticleFunction::particleId_;
+    // COORDINATES
+    using mpm::ParticleFunction::particleCoord_;
+    // SPACING
+    using mpm::ParticleFunction::particleSpacing_;
+    // NODES
+    using mpm::ParticleFunction::particleNodes_;
+
+    // SHAPE FUNCTIONS
+    using mpm::ParticleFunction::shapeFun_;
+    // GLOBAL DERIVATIVES OF SHAPE FUNCTIONS
+    using mpm::ParticleFunction::dShapeFun_;
+    // GLOBAL DERIVATES OF SHAPE FUNCTIONS AT THE CENTRE OF THE ELEMENT
+    using mpm::ParticleFunction::dShapeFunCentre_;
+
+    // B-Matrix
+    using mpm::ParticleFunction::B_;
+    // B-Matrix at the centre of the element
+    using mpm::ParticleFunction::BCentre_;
+    // BBar-Matrix
+    using mpm::ParticleFunction::BBar_;
+
+};
+
+#include "Particle.ipp"
+
+#endif

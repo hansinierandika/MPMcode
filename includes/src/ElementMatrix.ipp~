@@ -1,0 +1,18 @@
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+FUNCTION: CONSTRUCTOR
+          
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+mpm::ElementMatrix::ElementMatrix() {
+    massMatrixE_ = MatrixDNN::Zero();
+    laplaceMatrixE_ = MatrixDNN::Zero();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+FUNCTION: INITIALISE ELEMENT MATRIX
+          
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::ElementMatrix::initialiseElementMatrix() {
+    massMatrixE_ = MatrixDNN::Zero();
+    laplaceMatrixE_ = MatrixDNN::Zero();
+}

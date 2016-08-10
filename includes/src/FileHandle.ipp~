@@ -1,0 +1,115 @@
+
+//! FUNCTION: CONSTRUCTOR
+//!           This function defines all the input file names and 
+//!           creates input file stream (ifstream)
+//!
+mpm::FileHandle::FileHandle(path_& p) {
+
+    // define the input files names
+    std::string inputFile = p.string() + "/inputFiles/input.dat";
+    std::string nodeFile  = p.string() + "/inputFiles/node.dat" ;
+    std::string elemFile  = p.string() + "/inputFiles/element.dat";
+    std::string meshFile  = p.string() + "/inputFiles/meshData.dat";
+    std::string particleFile = p.string() + "/inputFiles/particles.dat";
+    std::string materialFile = p.string() + "/inputFiles/material.dat" ;
+    std::string iStressFile = p.string() + "/inputFiles/initStress.dat";
+    std::string velConstraintFile = p.string() + "/inputFiles/velCon.dat";
+    std::string fricConstraintFile = p.string() + "/inputFiles/fricCon.dat";
+
+    // std::string feedParticleFile = p.string() + "/inputFiles/feedParticle.dat";
+
+    // define the input file stream for reading files
+    inputStream.open(inputFile.c_str());
+    nodeStream.open(nodeFile.c_str());
+    elementStream.open(elemFile.c_str());
+    meshDataStream.open(meshFile.c_str());
+    particleStream.open(particleFile.c_str());
+    materialStream.open(materialFile.c_str());
+    iStressStream.open(iStressFile.c_str());
+    velConstraintStream.open(velConstraintFile.c_str());
+    fricConstraintStream.open(fricConstraintFile.c_str());
+    // feedParticleStream.open(feedParticleFile.c_str());
+
+    // verify the file is open
+    mpm::misc::VERIFY_OPEN(inputStream, inputFile);
+    mpm::misc::VERIFY_OPEN(nodeStream, nodeFile);
+    mpm::misc::VERIFY_OPEN(elementStream, elemFile);
+    mpm::misc::VERIFY_OPEN(meshDataStream, meshFile);
+    mpm::misc::VERIFY_OPEN(particleStream, particleFile);
+    mpm::misc::VERIFY_OPEN(materialStream, materialFile);
+    mpm::misc::VERIFY_OPEN(iStressStream, iStressFile);
+    mpm::misc::VERIFY_OPEN(velConstraintStream, velConstraintFile);
+    mpm::misc::VERIFY_OPEN(fricConstraintStream, fricConstraintFile);
+    // mpm::misc::VERIFY_OPEN(feedParticleStream, feedParticleFile);
+
+
+    // create the directory for the results
+    std::string directoryOfResults = p.string() + "/Results";
+    boost::filesystem::remove_all(directoryOfResults);
+    path_ pathResults (directoryOfResults);
+    if (boost::filesystem::create_directories(pathResults)) {
+        std::cout << "\tResults are in " << pathResults << "\n \n";
+    }
+    else {
+        std::cerr << "ERROR : in creating " << pathResults << "\n \n";
+        abort();
+    } 
+    ResultsDir = pathResults.string();
+
+    std::string line;
+    while (std::getline(inputStream, line))
+        mpm::misc::PARSE_PROPERTIES(line);
+}
+
+
+
+typedef mpm::Mesh* MeshPtr;
+MeshPtr mpm::FileHandle::read_mesh() {
+    MeshPtr mesh_ = new mpm::Mesh(meshDataStream);
+    mesh_->read_nodes_and_elements(nodeStream, elementStream);
+    mesh_->read_general_constraints(velConstraintStream);
+    return mesh_;
+}
+
+mpm::MpmParticle* mpm::FileHandle::read_particles() {
+    mpm::MpmParticle* particle_ = new mpm::MpmParticle();
+    particle_->readParticles(particleStream, iStressStream);
+
+    // assign material to particles
+    mpm::material::ReadMaterial mat(materialStream);
+    materials = mat.givePtrsToMaterials();
+    particle_->assignMaterialToParticles(materials);
+    return particle_;
+}
+
+
+
+//! WRITE FUNCTION: WRITE DATA TO FILE
+//!                 This function write the particle data to .vtk file.
+//!
+void mpm::FileHandle::WriteData(const unsigned& step, const ParticleSetPtr& particleSet) {
+
+    // Output file names
+    std::string velocityFile = ResultsDir + "/velocity" + std::to_string(step) + ".vtk";
+    std::string pressureFile = ResultsDir + "/pressure" + std::to_string(step) + ".vtk";
+    std::string stressFile   = ResultsDir + "/stress" + std::to_string(step) + ".vtk";
+    std::string strainFile   = ResultsDir + "/strain" + std::to_string(step) + ".vtk";
+
+    // Output file stream 
+    std::ofstream velocityOut(velocityFile.c_str()); 
+    std::ofstream pressureOut(pressureFile.c_str());
+    std::ofstream stressOut(stressFile.c_str());
+    std::ofstream strainOut(strainFile.c_str());
+
+    particleSet->writeParticleVelocityDataToFile(velocityOut);
+    particleSet->writeParticlePressureDataToFile(pressureOut);
+    particleSet->writeParticleStressDataToFile(stressOut);
+    particleSet->writeParticleStrainDataToFile(strainOut);
+
+    // Close output files 
+    velocityOut.close();
+    pressureOut.close();
+    stressOut.close();
+    strainOut.close();
+
+}

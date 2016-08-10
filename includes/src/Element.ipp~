@@ -1,0 +1,36 @@
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F1. FUNCTION: CONSTRUCTOR
+          store the element ID
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+mpm::Element::Element(unsigned& id) {
+    elemId_ = id;
+    elemElemsId_.clear();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+S1. FUNCTION: SET NODES OF THE ELEMENT
+          1. store the IDs of the nodes of the element
+          2. store the pointers to the nodes of the element
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Element::setNodesOfElement(unsigned& i, unsigned& nId, NodePtr nPtr) {
+    elemNodesId_(i) = nId;
+    elemNodesPtr_(i) = nPtr;
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+S2. FUNCTION: SET ELEMENTS OF ELEMENT
+          1. store the IDs of elements connected to the element
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Element::setElementsOfElement(unsigned& eId) {
+    elemElemsId_.push_back(eId);
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F2. FUNCTION: INITIALISE ELEMENT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Element::initialiseElement() {
+    this -> initialiseElementMatrix();
+}

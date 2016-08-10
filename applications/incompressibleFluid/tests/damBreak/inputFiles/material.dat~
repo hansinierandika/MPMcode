@@ -1,0 +1,14 @@
+1
+Newtonian 3
+          density                 1000
+          viscosity               0.00
+          bulkModulus             2.1E+4
+ModifiedBingham 3
+          density                 1000
+          viscosity               200
+          yieldStress             244
+MohrCoulomb 4
+          density                 2100
+          frictionAngle           0.1
+
+ 

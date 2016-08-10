@@ -1,0 +1,148 @@
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F1. FUNCTION: CONSTRUCTOR
+            1. clear containers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+mpm::MpmParticle::MpmParticle() {
+    particles_.clear();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F2. FUNCTION: READ PARTICLES
+            1. read the particle coordinates and initial stress from inputfiles
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MpmParticle::readParticles(std::ifstream& pFile, std::ifstream& sFile, bool g) {
+    std::string line;
+    unsigned numOfParticles;
+    unsigned matId;
+    VectorDDIM spacing;
+    VectorDDIM coordinates;
+
+    VectorDDOF iStress;
+
+    // read particle coordinates
+    std::getline(pFile, line);
+    std::istringstream in(line);
+    in >> numOfParticles >> matId;
+
+    std::getline(pFile, line);
+    std::istringstream space(line);
+    for (unsigned i = 0; i < dim; i++)
+        space >> spacing(i);
+
+    for (unsigned i = 0; i < numOfParticles; i++) {
+        ParticlePtr particle = new Particle(i, matId, spacing, g);
+        std::getline(pFile, line);
+        std::istringstream coord(line);
+        for (unsigned j = 0; j < dim; j++)
+            coord >> coordinates(j);
+        particle -> setParticleCoordinates(coordinates);
+        particles_.push_back(particle);
+    }
+
+    unsigned numOfInitStressParticles;
+    unsigned particleId;
+    std::getline(sFile, line);
+    std::istringstream is(line);
+    is >> numOfInitStressParticles;
+    for (unsigned i = 0; i < numOfInitStressParticles; i++) {
+        std::getline(sFile, line);
+        std::istringstream stress(line);
+        stress >> particleId;
+        for (unsigned j = 0; j < dof; j++)
+            stress >> iStress(j);
+        particles_.at(particleId) -> setParticleInitialStress(iStress);
+    }
+
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F3. FUNCTION: ASSIGN MATERIAL TO PARTICLES
+          This function assign the material pointer of each particle 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+inline void mpm::MpmParticle::assignMaterialToParticles(VecOfMaterialBasePtr& materialPtrs) {
+
+    for (auto i : particles_)
+        i -> setParticleMaterial(materialPtrs);
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F4. FUNCTION: INITIALISE PARTICLES
+          This function clear all particles at each new time step 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MpmParticle::initialiseParticles() {
+    for (auto i : particles_)
+        i -> initialiseParticle();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F5. FUNCTION: COMPUTE SHAPE FUNCTIONS AT PARTICLE LOCATIONS 
+          This function compute the shpae functions at particle locations 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MpmParticle::computeShapeFunctionsAtParticles() {
+
+    for (auto i : particles_) {
+        i -> computeLocalCoordinates();
+        i -> computeShapeFunctions();
+        i -> computeGlobalDerivativesOfShapeFunctions();
+    }
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F6. FUNCTION: MAP PARTICLE DATA TO GRID 
+          This function map the particle mass and momentum to grid nodes
+          Other mapping functions can be included here
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MpmParticle::mapParticleDataToGrid(bool gravityAtNodes) {
+
+    for (auto i : particles_) {
+        i -> mapParticleMassToNodes();
+        i -> mapParticleMomentumToNodes();
+    }
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F7. FUNCTION: MAP PARTICLE GRAVITY TO GRID 
+          This function map the particle gravity to grid nodes
+          ** particle gravity are mapped depending on the users choice **
+          See further discussion in documentation "External Forces"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+inline void mpm::MpmParticle::mapParticleGravityToGrid() {
+        for (auto i : particles_)
+            i -> mapParticleGravityToNodes();
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F12. FUNCTION: MAP PARTICLE PRESSURE TO GRID 
+          This function map the particle pressure to grid nodes
+          ** particle pressures are mapped in projection solver **
+          ** this mapping does not have effect in other solvers **
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+inline void mpm::MpmParticle::mapParticlePressureToGrid() {
+
+    for (auto i : particles_)
+        i -> mapParticlePressureToNodes();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F13. FUNCTION: COMPUTE ELEMENT PROJECTION MATRICES 
+          This function compute the element matrices
+          ** gravityAtNodes = 1 gravity force is calculated at nodes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+inline void mpm::MpmParticle::computeElementProjectionMatrix(bool gravityAtNodes) {
+
+    for (auto i : particles_) 
+        i -> buildElementProjectionMatrices();
+}
+
+
+
+
+
+

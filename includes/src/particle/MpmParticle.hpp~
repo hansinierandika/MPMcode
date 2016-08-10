@@ -1,0 +1,168 @@
+/*****************************************************************************
+                        Material Point Method
+                         Shyamini Kularathna
+                       University of Cambridge
+FILE: MpmParticle.hpp
+*****************************************************************************/
+#ifndef MPM_MPMPARTICLE_H
+#define MPM_MPMPARTICLE_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+// boost header files
+#include <boost/numeric/ublas/vector.hpp>
+
+// eigen header files
+#include <Eigen/Dense>
+
+// mpm header files
+#include "Constants.hpp"
+#include "Particle.hpp"
+#include "MaterialBase.hpp"
+
+namespace mpm {
+    class MpmParticle;
+}
+
+class mpm::MpmParticle {
+
+protected:
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+    static const unsigned dof = 3*(dim-1);
+
+    // TYPEDEF FOR MPM CLASSES
+    typedef mpm::Particle* ParticlePtr;
+    typedef mpm::material::MaterialBase* MaterialBasePtr;
+
+    typedef std::vector<MaterialBasePtr> VecOfMaterialBasePtr;
+
+    // TYPEDEF FOR EIGEN ROW VECTORS
+    typedef Eigen::Matrix<double, 1, dim> VectorDDIM;
+    typedef Eigen::Matrix<double, 1, dof> VectorDDOF; 
+    typedef Eigen::Matrix<double, 1, 6>   VectorD6x1;
+
+       //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                          // MEMBER FUNCTIONS
+
+    // %%%%%%%%%% GENERAL MPM FUNCTIONS %%%%%%%%%%%%%%%%%%%
+public:
+    // CONSTRUCTOR: read particles
+    MpmParticle();
+
+    // READ PARTICLE DATA
+    void readParticles(std::ifstream& pFile, std::ifstream& sFile);
+
+    // ASSIGN THE MATERIAL TO PARTICLES
+    void assignMaterialToParticles(VecOfMaterialBasePtr& materialPtrs);
+
+    // INITIALISE PARTICLES
+    void initialiseParticles();
+
+    // COMPUTE SHAPE FUNCTIONS AT PARTICLES
+    void computeShapeFunctionsAtParticles();
+
+    // COMPUTE B_MATRIX AT PARTICLES
+    void computeBMatrixAtParticles();
+
+    // COMPUTE B_MATRIX AT THE CENTRE OF THE ELEMENT
+    void computeBMatrixAtElementCentre();
+
+    // COMPUTE BBAR_MATRIX AT PARTICLES
+    void computeBBarMatrixAtParticles();
+
+    // SET PARTICLE INITIAL VELOCITY
+    void applyParticleInitialVelocityFromGrid();
+
+    // MAP INITIAL PARTICLE DATA TO GRID
+    void mapParticleMassToGrid();
+
+    // MAP PARTICLE MOMENTUM TO GRID
+    void mapParticleMomentumToGrid();
+
+    // MAP PARTICLE MOMENTUM TO GRID : AT BEGINING OF TIME STEP
+    void mapParticleBeginOfTimeStepMomentumToGrid();
+
+    // MAP PARTICLE MOMENTUM TO GRID : AT END OF TIME STEP
+    void mapParticleEndOfTimeStepMomentumToGrid();
+
+    // MAP PARTICLE PRESSURE TO GRID
+    void mapParticlePressureToGrid();
+
+    // COMPUTE EXTERNAL FORCE AT NODES
+    void computeExternalForce();
+
+    // COMPUTE INTERNAL FORCES AT NODES
+    void computeInternalForce(); 
+
+    // COMPUTE PARTICLE STRAIN 
+    void computeStrain();
+
+    // COMPUTE PARTICLE STRAIN AT ELEMENT CENTRE
+    void computeStrainAtElementCentre();
+
+    // COMPUTE PARTICLE STRAIN BBAR METHOD
+    void computeStrainBBarMethod();
+
+    // COMPUTE STRESS
+    void computeStress();
+
+    // UPDATE VELOCITY OF PARTICLES
+    void updateParticleVelocity(const double& dt);
+
+    // UPDATE POSITION OF PARTICLES
+    void updateParticlePosition(const double& dt);
+
+    // UPDATE DENSITY OF PARTICLES
+    void updateParticleDensity();
+
+    // UPDATE PRESSURE OF PARTICLES
+    void updateParticlePressure();
+
+
+public:
+    // GIVE TOTAL NUMBER OF PARTICLES
+    unsigned numberOfParticles() {
+        return particles_.size();
+    }
+
+    // GIVE POINTER TO THE GIVEN PARTICLE
+    ParticlePtr pointerToParticle(const unsigned& id) {
+        return particles_.at(id);
+    }
+
+    // GIVE COORDINATES OF THE GIVEN PARTICLE
+    VectorDDIM particleCoordinates(const unsigned& id) {
+        VectorDDIM pCoord = particles_.at(id) -> giveParticleCoordinates();
+        return pCoord;
+    }
+
+
+    // %%%%%%%%% WRITE DATA TO FILE FUNCTIONS %%%%%%%%%
+
+    // WRITE PARTICLE VELOCITY DATA
+    void writeParticleVelocityDataToFile(std::ostream& outFile);
+
+    // WRITE PARTICLE PRESSURE DATA
+    void writeParticlePressureDataToFile(std::ostream& outFile);
+
+    // WRITE PARTICLE STRESS DATA
+    void writeParticleStressDataToFile(std::ostream& outFile);
+
+    // WRITE PARTICLE STRAIN DATA
+    void writeParticleStrainDataToFile(std::ostream& outFile);
+
+
+protected:
+    // 1. Pointers to the all particles
+    std::vector<ParticlePtr> particles_;
+};
+
+#include "MpmParticle.ipp"
+
+#endif

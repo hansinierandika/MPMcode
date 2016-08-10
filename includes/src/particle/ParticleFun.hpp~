@@ -1,0 +1,141 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         University Of Cambridge
+File: ParticleFun.hpp
+****************************************************************************/
+#ifndef MPM_PARTICLEFUNCTION_H
+#define MPM_PARTICLEFUNCTION_H
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <iostream>
+#include <tuple>
+
+// eigen header files
+#include <Eigen/Dense>
+
+// mpm heade files
+#include "Constants.hpp"
+#include "Node.hpp"
+#include "Element.hpp"
+
+namespace mpm {
+    class ParticleFunction;
+}
+
+class mpm::ParticleFunction {
+
+protected:
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+    static const unsigned dof = 3 * (dim - 1);
+
+    typedef mpm::Element* ElementPtr;
+    typedef mpm::Node* NodePtr;
+
+    typedef Eigen::Matrix<double, 1, dim>         VectorDDIM;
+    typedef Eigen::Matrix<double, 1, numNodes>    VectorDNN;
+    typedef Eigen::Matrix<NodePtr,1, numNodes>    VectorNPtrNN;
+    typedef Eigen::Matrix<double, dim, numNodes>  MatrixDDIMNN;
+    typedef Eigen::Matrix<double, dof, dim>       MatrixDDOFDIM;
+
+    typedef std::vector<MatrixDDOFDIM>            VecOfMatDDOFDIM;
+    typedef std::tuple<unsigned, unsigned>        ijTuple;
+
+public:
+    // CONSTRUCTOR
+    ParticleFunction(unsigned& id, VectorDDIM& pSpacing);
+
+    // SET PARTICLE COORDINATES
+    void setParticleCoordinates(const VectorDDIM& coord) {
+        particleCoord_ = coord;
+    }
+
+    // SET ELEMENT AND NODES WHICH INCLUDES THE PARTICLE
+    void setParticleElementAndNodes(const ElementPtr& ptrE, const VectorNPtrNN& ptrsN) {
+        particleElement_ = ptrE;
+        particleNodes_   = ptrsN;
+    }
+
+
+    // COMPUTE PARTICLE LOCAL COORDINATES
+    void computeLocalCoordinates();
+
+    // COMPUTE SHAPE FUNCTIONS
+    void computeShapeFunctions();
+
+    // COMPUTE GLOBAL DERIVATIVES OF SHAPE FUNCTIONS AT PARTICLE LOCATION
+    void computeGlobalDerivativesOfShapeFunctions();
+
+    // COMPUTE GLOBAL DERIVATIVES OF SHAPE FUNCTIONS AT ELEMENT CENTRE
+    void computeGlobalDerivativesOfShapeFunctionsAtCentre();
+
+    // COMPUTE B-MATRIX
+    void computeBMatrix();
+
+    // COMPUTE B-MATRIX AT THE CENTRE OF THE ELEMENT
+    void computeBMatrixCentre();
+
+    // COMPUTE B-BAR MATRIX
+    void computeBBarMatrix(); 
+
+    // GIVE PARTICLE ID
+    unsigned giveId() const {
+        return particleId_;
+    }
+
+    // GIVE PARTICLE COORDINATES
+    VectorDDIM giveParticleCoordinates() const {
+        return particleCoord_;
+    }
+
+    // GIVE PARTICLE SPACING
+    VectorDDIM giveParticleSpacing() const {
+        return particleSpacing_;
+    }
+
+private:
+    // CHANGE THE VALUES OF VARIABLES 
+    void sign(double& variable, double value);
+
+    // COMPUTE LOCAL DERIVATIVES OF SHAPE FUNCTION
+    void computeLocalDerivatives(MatrixDDIMNN& dsfunc);
+
+
+protected:
+    // Particle Id
+    unsigned particleId_;
+    // Particle coordinates
+    VectorDDIM particleCoord_;
+    // Particle SPACING : This value is constant
+    VectorDDIM particleSpacing_;
+
+    // Particle connectivity to nodes
+    VectorNPtrNN particleNodes_;
+    // Particle connectivity to element
+    ElementPtr particleElement_;
+
+    // Particle local coordinates
+    VectorDDIM xi_;
+
+    // Particle shape functions
+    VectorDNN shapeFun_;
+    // Global derivatives of shape functions at the particle locaiton
+    MatrixDDIMNN dShapeFun_;
+    // Gloabl derivatives of shape functions at the centre of the element
+    MatrixDDIMNN dShapeFunCentre_;
+
+    // Particle B-Matrix
+    VecOfMatDDOFDIM B_;
+    // Particle B-Matrix at the centre of the element
+    VecOfMatDDOFDIM BCentre_;
+    // Particle BBar-Matrix
+    VecOfMatDDOFDIM BBar_;
+};
+
+#include "ParticleFun.ipp"
+
+#endif

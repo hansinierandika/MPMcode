@@ -1,0 +1,18 @@
+1
+ILE 3
+          density                 1800
+          youngModulus            1.0E+07
+          poissonRatio            0.2
+Newtonian 3
+          density                 1000
+          viscosity               0.00
+          bulkModulus             2.0E+6
+ModifiedBingham 3
+          density                 1000
+          viscosity               200
+          yieldStress             244
+MohrCoulomb 4
+          density                 2100
+          frictionAngle           0.1
+
+ 

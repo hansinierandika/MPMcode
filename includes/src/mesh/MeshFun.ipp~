@@ -1,0 +1,261 @@
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F1. FUNCTION: CONSTRUCTOR
+          This function reads the meshData.dat file for the following parameters
+          1. mesh spacing in each direction
+          2. num of elements in the mesh in each direction
+          3. corner elements in the mesh 
+          4. corner nodes in the mesh
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+mpm::MeshFunctions::MeshFunctions(std::ifstream& meshDatFile) {
+
+    std::string line;
+
+    std::getline(meshDatFile, line);
+    std::istringstream inputMeshSpace(line);
+    for (unsigned i = 0; i < dim; i++)
+        inputMeshSpace >> meshSpacing_(i);
+
+    std::getline(meshDatFile, line);
+    std::istringstream inputNumElem(line);
+    for (unsigned i = 0; i < dim; i++)
+        inputNumElem >> numOfElements_(i);
+
+    std::getline(meshDatFile, line);
+    std::istringstream inputCornerElem(line);
+    for (unsigned i = 0; i < 4; i++) 
+        inputCornerElem >> cornerElements_(i);
+
+    std::getline(meshDatFile, line);
+    std::istringstream inputCornerNode(line);
+    for (unsigned i = 0; i < 4; i++)
+        inputCornerNode >> cornerNodes_(i);            
+
+    ptrsToFreeNodes_.clear();
+    ptrsToFreeElements_.clear();
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F3.1 FUNCTION: READ VELOCITY CONSTRAINTS
+          1. read the velocity constraint file
+          2. store node id and status of velcoity constraint in each direction
+          velConstraintState_ =   id   |5  10  28|
+                                dim-1  |0   1   1|
+                                dim-2  |1   1   0|
+          3. store the values of velocity at constrained nodes
+          velConstraintValue_ = dim-1  |0   1.5 0|
+                                dim-2  |2.5 1.5 0|
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MeshFunctions::readVelocityConstraints(std::ifstream& velConFile) {
+
+    std::string line;
+    unsigned numOfVelConNodes, numOfPresConNodes;
+    unsigned nodeId, direction;
+    double value;
+
+    std::getline(velConFile, line);
+    std::istringstream in(line);
+    in >> numOfVelConNodes >> numOfPresConNodes;
+    // ******* Read Velocity Constraints ************
+    for (unsigned i = 0; i < numOfVelConNodes; i++) {
+        std::getline(velConFile, line);
+        std::istringstream is(line);
+        is >> nodeId >> direction;
+        is >> value;
+        nodes_.at(nodeId) -> setNodeVelocityConstraints(direction, value); 
+    }
+    // ******* Read Pressure Constraints ************
+    for (unsigned i = 0; i < numOfPresConNodes; i++) {
+        std::getline(velConFile, line);
+        std::istringstream is(line);
+        is >> nodeId >> value;
+        nodes_.at(nodeId) -> setNodePressureConstraints(value);
+    }
+
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F2. FUNCTION: READ NODES AND ELEMENTS
+          1. Read the mesh data from the node.dat file.
+          2. Read the mesh data from the element.dat file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MeshFunctions::readNodesAndElements(std::ifstream& nfile, std::ifstream& efile) {
+
+    std::string line;
+
+    // ******** READ NODES *************
+    unsigned numOfNodes;
+    if(!std::getline(nfile, line)) {
+        printERRORMessage();
+    } 
+    std::istringstream inputLineNODE(line);
+    inputLineNODE >> numOfNodes;
+
+    for (unsigned i = 0; i < numOfNodes; i++) {
+        if (!std::getline(nfile, line)) {
+            printERRORMessage();
+        }
+        NodePtr node = new mpm::Node(line,i);
+        nodes_.push_back(node);
+    }
+
+    // ******** READ ELEMENTS ***********
+    // 1. read the number of elements
+    unsigned numOfElements;
+    if(!std::getline(efile, line)) {
+        printERRORMessage();
+    }
+    std::istringstream inputLineELEM(line);
+    inputLineELEM >> numOfElements;
+
+    // 2. read the nodes of each element
+    for (unsigned i = 0; i < numOfElements; i++) {
+        ElementPtr element = new mpm::Element(i);
+        if (!std::getline(efile, line)) {
+            printERRORMessage();
+        }
+        std::istringstream in(line);
+        for (unsigned j = 0; j < numNodes; j++) {
+            unsigned nodeId;
+            in >> nodeId;
+            element -> setNodesOfElement(j, nodeId, nodes_.at(nodeId));
+        }
+        elements_.push_back(element);
+    }
+    // 3. read the elements connected to each element
+    for (unsigned i = 0; i < numOfElements; i++) {
+        unsigned numOfElemOfElement;
+        if (!std::getline(efile, line)) {
+            printERRORMessage();
+        }
+        std::istringstream in(line);
+        in >> numOfElemOfElement;
+        unsigned elemId;
+        for (unsigned j = 0; j < numOfElemOfElement; j++) {
+            in >> elemId;
+            elements_.at(i) -> setElementsOfElement(elemId);
+        } 
+    }
+
+    // ******** Store the first and last nodes of the mesh *********
+    firstCoord_ = nodes_.at(cornerNodes_(0)) -> giveNodeCoordinates();
+    lastCoord_  = nodes_.at(cornerNodes_(3)) -> giveNodeCoordinates();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F5. FUNCTION: INITIALISE THE CLASS MEMBERS TO START A NEW TIME STEP
+             This function initialises containers to start a new time step
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MeshFunctions::initialiseMeshFunctions() {
+
+    pElementSet_.clear();
+    pNodeSet_.clear();
+
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F3. FUNCTION: LOCATE PARTICLES IN THE MESH
+          This function locate the particles in the mesh.
+          It checks the particle is inside the mesh. If yes, it finds the 
+          element in which the particle is.
+          Then, the nodes of that element is assigned to the particle.
+          This function also inset elements and nodes which contain particles
+          into corresponding containers.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MeshFunctions::locateParticlesInMesh(ParticleSetPtr& particleSet) {
+
+    unsigned numOfParticles = particleSet->numberOfParticles();
+
+    // "elemGrid" is the vecotor holding the element grid which containes
+    // the particle
+    Eigen::Matrix<int, 1 , dim> elemGrid;
+
+    for (unsigned i = 0; i < numOfParticles; i++) {
+        VectorDDIM pCoordinates = particleSet->particleCoordinates(i);
+        
+        // ***** Algorithm for locating the element grid *******************
+        for (unsigned j = 0; j < dim; j++)
+            elemGrid(j) = std::fabs((pCoordinates(j) - firstCoord_(j)) / meshSpacing_(j));
+        // ***** check whether the particle is inside the mesh *************
+        checkParticleInsideMesh(elemGrid, i);
+
+        // ***** Algorithm for finiding the element Id which contains ****** 
+        // ***** the particle **********************************************
+        unsigned elemId;
+        if (dim == 2)
+            elemId = std::fabs(elemGrid(0) + (numOfElements_(0) * elemGrid(1)));
+        
+        // ***** check the accuracy of the elementId ***********************
+        if (elemId > cornerElements_(3) || elemId < cornerElements_(0)) {
+            std::cerr << "ERROR: in computing element id for particle " << i << "\n";
+            abort();
+        }
+
+        ParticlePtr pPtr = particleSet->pointerToParticle(i);
+        setElementsAndNodesOfParticles(elemId, pPtr);
+    }
+
+}
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+                            // PRIVATE FUNCTIONS
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+P1. PRIVATE FUNCTION: CHECK PARTICLES INSIDE THE MESH
+                     This function check whether a particle is inside the mesh.
+                     If not, this aborts the program
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MeshFunctions::checkParticleInsideMesh(VectorIDIM& eGrid, unsigned& pId) {
+
+    for (unsigned i = 0; i < dim; i++) {
+        if (eGrid(i) < 0 || eGrid (i) >= numOfElements_(i)) {
+            std::cerr << "ERROR: Particle " << pId << " is out of mesh" << "\n";
+            abort();
+        }
+    }
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+P2. PRIVATE FUNCTION: SET ELEMENTS AND NODES OF PARTICLES
+                     This function insert elements and nodes which have 
+                     particles to the elementset and nodesset
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MeshFunctions::setElementsAndNodesOfParticles(unsigned& elementId, ParticlePtr& particlePtr) {
+    ElementPtr ePtr = elements_.at(elementId);
+    pElementSet_.insert(ePtr);
+
+    VectorNPtrNN nPtrs = ePtr -> giveElementNodePtrs();
+    for (unsigned i = 0; i < numNodes; i++) 
+        pNodeSet_.insert(nPtrs(i));
+
+    particlePtr -> setParticleElementAndNodes(ePtr, nPtrs);
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+P3. FUNCTION: PRINT ERROR MESSAGE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MeshFunctions::printERRORMessage() {
+    std::cerr << "ERROR: reading file" << "\n";
+    abort();
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+PR1. PRINT FUNCTION: PRINT ELEMENTS AND NODES
+                   This function prints elements and nodes IDs which includes
+                   particles to the screen
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::MeshFunctions::printElementsAndNodesOfParticles() {
+    std::cout << "\n Elements of Particles: ";
+    for (auto e : pElementSet_) {
+        unsigned id = e -> giveId();
+        std::cout << "\t" << id;
+    }
+    std::cout << "\n Nodes of Particles: ";
+    for (auto n : pNodeSet_) {
+        unsigned id = n -> giveId();
+        std::cout << "\t" << id;
+    }
+}

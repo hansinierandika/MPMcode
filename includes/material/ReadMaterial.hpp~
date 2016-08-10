@@ -1,0 +1,65 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         Unversity Of Cambridge
+File: ReadMaterial.hpp
+****************************************************************************/
+
+#ifndef MPM_MATERIAL_READMATERIAL_H
+#define MPM_MATERIAL_READMATERIAL_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <map>
+
+// mpm header files
+#include "MaterialBase.hpp"
+#include "Newtonian/Newtonian.hpp"
+#include "ModifiedBingham/ModifiedBingham.hpp"
+#include "MohrCoulomb/MohrCoulomb.hpp"
+#include "PropertyParse.hpp"
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+namespace mpm {
+    namespace material {
+        class ReadMaterial;
+    }
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::material::ReadMaterial {
+
+protected:
+    typedef mpm::material::MaterialBase* MaterialBasePtr;
+    typedef std::vector<MaterialBasePtr> MaterialVector;
+
+public:
+    // F1. CONSTRUCTOR
+    ReadMaterial(std::ifstream& matFile);
+
+private:
+    // F2. REGISTER MATERIALS
+    MaterialBasePtr registerMaterial(std::string& name);
+
+    //%%%%%%%%%%%%%%%% GIVE FUNCTIONS %%%%%%%%%%%%%%%%%
+
+public:
+    // G1. GIVE MATERIAL POINTERS
+    MaterialVector givePtrsToMaterials() {
+        return materialPtrs_;
+    }
+
+public:
+    MaterialVector materialPtrs_;
+};
+
+#include "ReadMaterial.ipp"
+
+#endif

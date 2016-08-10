@@ -1,0 +1,45 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         University Of Cambridge
+File: MpmMesh.hpp
+****************************************************************************/
+#ifndef MPM_MPMMESH_H
+#define MPM_MPMMESH_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+// boost header files
+#include <boost/numeric/ublas/vector.hpp>
+
+// eigen header files
+#include <Eigen/Dense>
+
+// Mpm header files
+#include "Mesh.hpp"
+
+extern const int DIM;
+extern const int NUMNODES;
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+namespace mpm {
+    class MpmMesh;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::MpmMesh : public mpm::Mesh_Mpm {
+
+public:
+    MpmMesh (std::ifstream& nodeFile, std::ifstream& elemFile);
+};
+
+#include "MpmMesh.ipp"
+
+#endif

@@ -1,0 +1,120 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         University Of Cambridge
+File: Node.hpp
+****************************************************************************/
+#ifndef MPM_NODE_H
+#define MPM_NODE_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
+// boost header files
+#include <boost/numeric/ublas/vector.hpp>
+
+// eigen header files
+#include <Eigen/Dense>
+
+// mpm header files
+#include "Constants.hpp"
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+namespace mpm {
+    class Node;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::Node {
+
+protected:
+
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+
+    typedef Eigen::Matrix<double, 1, dim> VectorDDIM;
+
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                         // FUNCTONS
+
+public:
+
+    // F1. CONSTRUCTOR: store the coordinates of the node
+    //                 store the id of the node
+    Node(std::string& iLine, unsigned& id);
+
+    // F2. INITIALISE NODES
+    void initialiseNode();
+
+    // %%%%%%%%%%%% MAPPING DATA FROM PARTICLES %%%%%%%
+
+    // F3. ASSIGN MASS AT NODES FROM PARTICLES
+    void assignNodalMass(double& mass) {
+        nMass_ += mass;
+    }
+
+    // F4. ASSIGN MOMENTUM AT NODES FROM PARTICLES
+    void assignNodalMomentum(VectorDDIM& momentum) {
+        nMomentum_ += momentum;
+    }
+
+    // F5. ASSIGN NODAL PRESSURE TIMES MASS FROM PARTICLES
+    void assignNodalPressureTimesMass(double& pressureXmass) {
+        nPressure_ += pressureXmass;
+    }
+
+    // %%%%%%%%%%% COMPUTE FUNCTIONS %%%%%%%%%%%%%%%%%%
+
+    // F6. COMPUTE NODAL VELOCITY FROM MOMENTUM
+    void computeNodalVelocityFromMomentum();
+
+    // F7. COMPUTE NODAL PRESSURE FROM THE MAPPED VALUES
+    void computeNodalPressureFromMappedPressure();
+
+    // %%%%%%%%%%%% GIVE VALUES AT NODE %%%%%%%%%%%%%%%%
+
+    // G1. GIVE ID OF THE NODE
+    unsigned giveId() {
+        return nodeId_;
+    }
+
+    // G2. GIVE COORDINATES
+    VectorDDIM giveNodeCoordinates() {
+        return nodeCoord_;
+    }
+
+    //____________________________________________________________________
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                     // CLASS VARIABLES
+public:
+    // 1. node ID
+    unsigned nodeId_;
+    // 2. coordinates of node
+    VectorDDIM nodeCoord_;
+
+    // 3. Node Connectivity to other nodes and elements
+
+    // 4. Node Connectivity to particles
+
+    // 5. Nodal values
+       // 5.1 Mass at nodes
+    double nMass_;
+       // 5.2 Momentum at nodes
+    VectorDDIM nMomentum_;
+       // 5.3 Velocity at node
+    VectorDDIM nVelocity_;
+       // 5.4 Pressure at node
+    double nPressure_; 
+
+};
+
+#include "Node.ipp"
+
+#endif // NODE_MPM_H

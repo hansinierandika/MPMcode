@@ -1,0 +1,79 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         Unversity Of Cambridge
+File: ModifiedBingham.hpp
+****************************************************************************/
+
+#ifndef MPM_MATERIAL_MODIFIEDBINGHAM_H
+#define MPM_MATERIAL_MODIFIEDBINGHAM_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
+// mpm header files
+#include "MaterialBase.hpp"
+#include "PropertyParse.hpp"
+#include "Constants.hpp" 
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+namespace mpm {
+    namespace material {
+        class ModifiedBingham;
+    }
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::material::ModifiedBingham : public mpm::material::MaterialBase {
+
+protected:
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+    static const unsigned dof = 3 * (dim - 1);
+
+    typedef Eigen::Matrix<double, 1, dof> VectorDDOF;
+    typedef Eigen::Matrix<double, 1, 6>   VectorD6x1;
+
+    //%%%%%%%%%%%% FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+public:
+
+    // F1. CONSTRUCTOR
+    ModifiedBingham();
+
+    // F2. CREATE THE MATERIAL
+    static MaterialBase* create() {
+        return new ModifiedBingham();
+    }
+
+    // COMPUTE STRESS
+    void computeStress(const VectorDDOF& strain, VectorD6x1& stress, double& pressure, const double& dVolStrain) { };
+
+    //%%%%%%%%%%% GIVE FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%
+    // G1. GIVE DENSITY
+    double giveDensity() {
+        return density_;
+    }
+
+    // G2. GIVE VISCOSITU
+    double giveViscosity() {
+        return viscosity_;
+    }
+
+
+    //%%%%%%%%%%% MATERIAL PARAMETRS %%%%%%%%%%%%%%%%%%%%%%
+public:
+    double density_;
+    double viscosity_;
+    double yieldStress_;
+};
+
+#include "ModifiedBingham.ipp"
+
+#endif

@@ -1,0 +1,125 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         Unversity Of Cambridge
+File: Mesh.hpp
+****************************************************************************/
+
+#ifndef MPM_MESH_H
+#define MPM_MESH_H
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <set>
+#include <functional>
+
+// header files
+#include "Constants.hpp"
+#include "Element.hpp"
+#include "Node.hpp"
+#include "Particle.hpp"
+#include "MpmParticle.hpp"
+
+namespace mpm {
+  class Mesh;
+  template <class T>
+  struct comparator {
+    bool operator () (const T& arg1, const T& arg2) const {
+      unsigned firstId = arg1->give_id();
+      unsigned secondId = arg2->give_id();
+      return firstId < secondId;
+    }
+  };
+}
+
+
+class mpm::Mesh {
+
+protected:
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+    static const unsigned numCorners = ((dim - 1) * dim) + 2;
+
+public:
+    // default constructor
+    Mesh(std::ifstream& mess_data_file);
+
+    // default destructor
+    ~Mesh() { free_memory(); }
+
+    template<typename FP>
+    void mpm::Mesh::iterate_over_elements(FP function) const();
+
+    template<typename FP>
+    void mpm::Mesh::iterate_over_nodes(FP function) const();
+
+    template<typename FP>
+    void mpm::Mesh::iterate_over_elements_of_p(FP function) const();
+
+    template<typename FP>
+    void mpm::Mesh::iterate_over_nodes_of_p(FP function) const();
+
+    void initialise_mesh();
+
+    void read_nodes_and_elements(std::ifstream& node_file, std::ifstream& elem_file);
+
+    void read_general_constraints(std::ifstream& vel_con_file);
+
+    void locate_particles_in_mesh(mpm::MpmParticle* &particle_set);
+
+
+    // give vector of elements which contain particles
+    void give_elements_of_p(std::vector<mpm::Element*>& vecOfE) {
+        for (const auto i : p_element_set_)
+            vecOfE.push_back(i);
+    }
+
+    // give vector of nodes which contain particles
+    void give_nodes_o_P(std::vector<mpm::Node*>& vecOfN) {
+        for (auto i : p_node_set_) 
+            vecOfN.push_back(i);
+    }
+
+
+private:
+  // free all dynamically allocated memory within "MeshBase" class
+  void free_memory();
+
+  void check_particle_is_inside_mesh(Eigen::Matrix<int, 1 , dim> &eGrid, unsigned &pId);
+
+  void set_elements_and_nodes_of_particles(unsigned &elementId, mpm::Particle* &particlePtr);
+
+
+
+public :
+  // Pointers to all elements in the mesh
+  std::vector<mpm::Element*> elements_;
+  // Pointers to all nodes in the mesh
+  std::vector<mpm::Node*> nodes_;
+
+  // Set of elements which containes particles
+  std::set<mpm::Element*, mpm::comparator<mpm::Element*> > p_element_set_;
+  // Set of nodes which containes particles
+  std::set<mpm::Node*, mpm::comparator<mpm::Node*> > p_node_set_;
+
+    // Mesh spacing
+    Eigen::Matrix<double, 1, dim> mesh_spacing_;
+    // number of oelements in each directions
+    Eigen::Matrix<unsigned, 1, dim> num__elements_;
+    // Ids of the corner elements of the mesh
+    Eigen::Matrix<unsigned, 1, numCorners> corner_elements_;
+    // Ids of the corner noes of the mesh
+    Eigen::Matrix<unsigned, 1, numCorners> corner_nodes_;
+    // coordinates of the first node of the mesh
+    Eigen::Matrix<double, 1, dim> first_node_coord_;
+    // coordinates of the last node of the mesh
+    Eigen::Matrix<double, 1, dim> last_node_coord_;
+
+};
+
+#include "Mesh.ipp"
+
+#endif

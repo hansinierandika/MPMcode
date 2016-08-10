@@ -1,0 +1,96 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         Unversity Of Cambridge
+File: Mesh.hpp
+****************************************************************************/
+
+#ifndef MPM_MESH_H
+#define MPM_MESH_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <set>
+
+// boost header files
+#include <boost/numeric/ublas/vector.hpp>
+
+// header files
+#include "Constants.hpp"
+#include "MeshFun.hpp"
+#include "Element.hpp"
+#include "Node.hpp"
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+namespace mpm {
+    class Mesh;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::Mesh : public mpm::MeshFunctions {
+
+protected:
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+
+    typedef mpm::Element* ElementPtr;
+    typedef mpm::Node* NodePtr;
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                         // FUNCTIONS
+
+    // %%%%%%%%% BASIC MPM FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%
+public:
+    // F1. CONSTRUCTOR: Read the mesh data from the input files
+    Mesh(std::ifstream& meshFile);
+
+    // F2. COMPUTE ELEMENT CENTRE COORDINATES
+    void computeElementCentreCoordinates();
+
+    // F3. INITIALISE MESH: initialise elements which have particles
+    //                     initialise nodes which have particles
+    void initialiseMesh();
+
+    // %%%%%%%%%% COMPPUTE VALUES AT NODES %%%%%%%%%%%%%%%%%
+
+    // F4. COMPUTE NODAL VELOCITIES FROM NODAL MOMENTUM
+    void computeVelocityFromMomentumAtNodes();
+
+    // F5. COMPUTE NODAL PRESSURE FROM MAPPED VALUES
+    void computePressureFromMappedPressureAtNodes();
+
+    // F6. COMPUTE NODAL GRAVITY FROM MAPPED VALUES
+    void computeGravityFromMappedGravityAtNodes();
+
+
+    //________________________________________________________________
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                         // CLASS VARIABLES
+
+public :
+
+    // 1. Pointers to Mesh Entities
+         // 1.1 pointers to all elements
+    using mpm::MeshFunctions::elements_;
+         // 1.2 pointers to all nodes
+    using mpm::MeshFunctions::nodes_;
+
+    // 2. Pointers to Mesh Entities only those which contain particles
+         // 2.1 pointers to elements only those which contain particles 
+    using mpm::MeshFunctions::pElementSet_;
+         // 2.2 pointers to nodes only thos which contain particles
+    using mpm::MeshFunctions::pNodeSet_;
+
+};
+
+#include "Mesh.ipp"
+
+#endif

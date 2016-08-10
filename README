@@ -1,0 +1,3 @@
+1. Change the path to the working directory in definitions.mk and Makefile
+2. Run make cleann && make 
+3. Run ./incompressibleMPM

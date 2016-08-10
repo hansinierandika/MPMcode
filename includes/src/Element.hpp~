@@ -1,0 +1,112 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         University Of Cambridge
+File: Element.hpp
+****************************************************************************/
+#ifndef MPM_ELEMENT_H
+#define MPM_ELEMENT_H
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+// boost header files
+#include <boost/numeric/ublas/vector.hpp>
+
+// eigen header files
+#include <Eigen/Dense>
+
+// mpm header files
+#include "Constants.hpp"
+#include "Node.hpp"
+#include "ElementMatrix.hpp"
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+namespace mpm {
+    class Element;
+    namespace ublas =  boost::numeric::ublas;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::Element : public mpm::ElementMatrix {
+
+protected:                    
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+
+    // TYPEDEF FOR POINTERS TO MPM CLASSES
+    typedef mpm::Node* NodePtr;
+
+    // TYPEDEF FOR EIGEN
+    typedef Eigen::Matrix<double, 1, dim>       VectorDDIM;
+    typedef Eigen::Matrix<NodePtr, 1, numNodes> VectorNPtrNN;
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                      // FUNCTIONS
+public:
+
+    // F1. CONSTRUCTOR: store the element id
+    Element(unsigned& id);
+
+    // F2. COMPUTE ELEMENT CENTRE COORDINATES
+    void computeCentreCoordinates();
+
+    // F3. INITIALISE ELEMENTS
+    void initialiseElement();
+
+    // %%%%%%%%%%%%% SET FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%
+
+    // S1. SET NODES OF ELEMENTS
+    void setNodesOfElement(unsigned& i, unsigned& nId, NodePtr nPtr);
+
+    // S2. SET ELEMENTS OF ELEMENTS
+    void setElementsOfElement(unsigned& eId);
+
+    // %%%%%%%%%%%%%%% GIVE FUNCTIONS %%%%%%%%%%%%%%%%%%%%%
+
+    // G1. GIVE ELEMENT ID
+    unsigned giveId() {
+        return elemId_;
+    }
+
+    // G2. GIVE POINTERS TO NODES OF THE ELEMENT
+    VectorNPtrNN giveElementNodePtrs() {
+        return elemNodesPtr_;
+    }
+
+
+
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                 // CLASS VARIABLES
+
+public:
+
+    // 1. element ID
+    unsigned elemId_;
+
+    // 2. Element Connectivity to nodes and elements
+          // 2.1 IDs of the nodes of the element
+    Eigen::Matrix<unsigned, 1, numNodes> elemNodesId_;
+          // 2.2 pointers to the nodes of the element
+    VectorNPtrNN elemNodesPtr_;
+          // 2.3 IDs of the elements connected to the element
+    std::vector<unsigned> elemElemsId_;
+
+    // 3. Element length
+    VectorDDIM elemLength_;
+    // 4. Element centre coordinates
+    VectorDDIM elemCentreCoord_;
+
+
+};
+
+#include "Element.ipp"
+
+#endif
+
+

@@ -1,0 +1,147 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         University Of Cambridge
+File: ParticleFun.hpp
+****************************************************************************/
+#ifndef MPM_PARTICLEFUNCTION_H
+#define MPM_PARTICLEFUNCTION_H
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <iostream>
+#include <tuple>
+
+// eigen header files
+#include <Eigen/Dense>
+
+// mpm heade files
+#include "Constants.hpp"
+#include "Node.hpp"
+#include "Element.hpp"
+
+namespace mpm {
+    class ParticleFunction;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::ParticleFunction {
+
+protected:
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+
+    // TYPEDEF FOR POINTERS TO MPM CLASSES
+    typedef mpm::Element* ElementPtr;
+    typedef mpm::Node* NodePtr;
+
+    typedef std::tuple<unsigned, unsigned> ijTuple;
+
+    // TYPEDEF FOR EIGEN ROW VECTORS
+    typedef Eigen::Matrix<double, 1, dim>      VectorDDIM;
+    typedef Eigen::Matrix<double, 1, numNodes> VectorDNN;
+    typedef Eigen::Matrix<NodePtr,1, numNodes> VectorNPtrNN;
+    // TYPEDEF FOR EIGEN MATRIX
+    typedef Eigen::Matrix<double, dim, numNodes> MatrixDDIMNN;
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                        // MEMBER FUNCTIONS
+
+    // %%%%%%%%%%%% GENERAL FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%
+public:
+    // F1. CONSTRUCTOR
+    ParticleFunction(unsigned& id);
+
+    // F2. COMPUTE PARTICLE LOCAL COORDINATES
+    void computeLocalCoordinates();
+
+    // F3. COMPUTE SHAPE FUNCTIONS
+    void computeShapeFunctions();
+
+    // F4. COMPUTE GRADIENT OF SHAPE FUNCTIONS
+    void computeGlobalDerivativesOfShapeFunctions();
+
+    // %%%%%%%%%%%%%%% PROJECTION MATRIX FUNCTIONS %%%%%%%
+
+    // F5. COMPUTE CONSISTENT MASS MATRIX
+    void computeElementMassMatrix(double& mass, double& density);
+
+    // F6. COMPUTE LAPLACE MATRIX
+    void computeElementLaplaceMatrix(double& mass, double& density);
+
+    // F7. COMPUTE ELEMENT PRESSURE/VELOCITY GRAD MATRIX
+    void computeElementGradMatrix(double& mass, double& density);
+
+    // F8. COMPUTE ELEMENT VISCOUS MATRIX
+    void computeElementViscousMatrix(double& mass, double& density, double& viscosity);
+
+
+    // %%%%%%%%%%% SET FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%
+
+    // S1. SET PARTICLE COORDINATES
+    void setParticleCoordinates(VectorDDIM& coord) {
+        particleCoord_ = coord;
+    }
+
+    // S2. SET ELEMENT AND NODES WHICH INCLUDES THE PARTICLE
+    void setParticleElementAndNodes(ElementPtr& ptrE, VectorNPtrNN& ptrsN) {
+        particleElement_ = ptrE;
+        particleNodes_   = ptrsN;
+    }
+
+    // %%%%%%%%%%%%%%%%%% GIVE FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%
+
+    // G1. GIVE PARTICLE ID
+    unsigned giveId() {
+        return particleId_;
+    }
+
+    // G2. GIVE PARTICLE COORDINATES
+    VectorDDIM giveParticleCoordinates() {
+        return particleCoord_;
+    }
+
+
+
+
+private:
+    // P1. CHANGE THE VALUES OF VARIABLES 
+    void sign(double& variable, double value);
+
+    // P2. COMPUTE LOCAL DERIVATIVES OF SHAPE FUNCTION
+    void computeLocalDerivatives(MatrixDDIMNN& dsfunc);
+
+
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                       // MEMBER VARIABLES
+protected:
+
+    // 1. Particle Id
+    unsigned particleId_;
+    // 2. Particle coordinates
+    VectorDDIM particleCoord_;
+
+    // 3. Particle connectivity to nodes
+    VectorNPtrNN particleNodes_;
+    // 4. Particle connectivity to element
+    ElementPtr particleElement_;
+
+    // 5. Particle local coordinates
+    VectorDDIM xi_;
+
+    // 6. Particle shape functions
+    VectorDNN shapeFun_;
+    // 7. Global derivatives of shape functions
+    MatrixDDIMNN dShapeFun_;
+
+
+
+};
+
+#include "ParticleFun.ipp"
+
+#endif

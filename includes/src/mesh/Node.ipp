@@ -1,0 +1,141 @@
+
+mpm::Node::Node(std::string& iLine, unsigned& id) {
+    nodeId_ = id;
+    std::istringstream inp(iLine);
+    if (dim == 2) {
+        double third;
+        inp >> nodeCoord_(0) >> nodeCoord_(1);
+        inp >> third;
+    }
+    else if (dim == 3)
+        inp >> nodeCoord_(0) >> nodeCoord_(1) >> nodeCoord_(2);
+
+    nMass_     = 0.;
+    nMomentum_ = VectorDDIM::Zero();
+    nBeginMomentum_ = VectorDDIM::Zero();
+    nEndMomentum_ = VectorDDIM::Zero();
+    nVelocity_ = VectorDDIM::Zero();
+    nAcceleration_ = VectorDDIM::Zero();
+    nExtForce_ = VectorDDIM::Zero();
+    nIntForce_ = VectorDDIM::Zero();
+    nVelConState_ = VectorUDIM::Zero();
+    nVelConValue_ = VectorDDIM::Zero();
+
+    nVolStrainRate_ = 0.;
+    nVolume_ = 0.;
+    nPressure_ = 0.;
+    pressureConstraintStatus_ = 0;
+    pressureConstraintValue_ = 0;
+}
+
+
+
+void mpm::Node::initialise_node() {
+    nMass_     = 0.;
+    nMomentum_ = VectorDDIM::Zero();
+    nBeginMomentum_ = VectorDDIM::Zero();
+    nEndMomentum_ = VectorDDIM::Zero();
+    nVelocity_ = VectorDDIM::Zero();
+    nAcceleration_ = VectorDDIM::Zero();
+    nExtForce_ = VectorDDIM::Zero();
+    nIntForce_ = VectorDDIM::Zero();
+
+    nVolStrainRate_ = 0.;
+    nVolume_ = 0.;
+    nPressure_ = 0.;
+    if (mpm::misc::freeSurface) {
+        pressureConstraintStatus_ = 0;
+        pressureConstraintValue_  = 0.;
+    }
+}
+
+
+void mpm::Node::compute_nodal_velocity_from_momentum() {
+    if (std::fabs(nMass_) > 1.E-15)
+        nVelocity_ = nMomentum_ / nMass_;
+    else {
+        std::cerr << "ERROR: nodal mass is lower than the cutoff value" << "\n";
+    }
+    for (unsigned i = 0; i < dim; i++)
+        this->check_double_precision(nVelocity_(i));
+    this->apply_velocity_constraint();
+}
+
+
+void mpm::Node::compute_nodal_velocity_from_begin_momentum() {
+    if (std::fabs(nMass_) > 1.E-15)
+        nVelocity_ = nBeginMomentum_ / nMass_;
+    else {
+        std::cerr << "ERROR: nodal mass is lower than the cutoff value" << "\n";
+    }
+    for (unsigned i = 0; i < dim; i++)
+        this->check_double_precision(nVelocity_(i));
+    this->apply_velocity_constraint();
+}
+
+
+void mpm::Node::compute_nodal_velocity_from_end_momentum() {
+    if (std::fabs(nMass_) > 1.E-15)
+        nVelocity_ = nEndMomentum_ / nMass_;
+    else {
+        std::cerr << "ERROR: nodal mass is lower than the cutoff value" << "\n";
+    }
+    for (unsigned i = 0; i < dim; i++)
+        this->check_double_precision(nVelocity_(i));
+    this->apply_velocity_constraint();
+}
+
+
+void mpm::Node::compute_nodal_pressure_from_mapped_pressure() {    
+    if (std::fabs(nMass_) > 1.E-15)
+        nPressure_ = nPressure_ / nMass_;
+    else {
+        std::cerr << "ERROR: nodal mass is lower than the cutoff value" << "\n";
+    }
+    this->check_double_precision(nPressure_);
+    if (mpm::misc::freeSurface)
+        this->apply_pressure_constraint();
+}
+
+
+
+void mpm::Node::solve_acceleration_and_velocity(const double dt) {
+    if (std::fabs(nMass_) > 1.0E-16)
+        nAcceleration_ = (nExtForce_ + nIntForce_) / nMass_;
+    else 
+        std::cerr << "ERROR: mass is zero" << "\n";
+    this->apply_acceleration_constraint();
+    nVelocity_ += dt * nAcceleration_;
+    this->apply_velocity_constraint();
+}
+
+
+void mpm::Node::check_double_precision(double& value) {
+
+    if (std::fabs(value) < 1.E-15)
+        value = 0.;
+}
+
+
+
+void mpm::Node::apply_velocity_constraint() {
+    for (unsigned i = 0; i < dim; i++) {
+        if (nVelConState_(i))
+            nVelocity_(i) = nVelConValue_(i);
+    }
+}
+
+
+void mpm::Node::apply_acceleration_constraint() {
+    for (unsigned i = 0; i < dim; i++) {
+        if (nVelConState_(i))
+            nAcceleration_(i) = 0.;
+    }
+}
+
+
+
+void mpm::Node::apply_pressure_constraint() {
+    if (pressureConstraintStatus_) 
+        nPressure_ = pressureConstraintValue_;;
+}

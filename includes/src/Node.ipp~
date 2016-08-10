@@ -1,0 +1,98 @@
+/****************************************************************************
+File: Node.ipp
+*****************************************************************************/
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F1. FUNCTION: CONSTRUCTOR 
+              store the nodal coordinates store the nodal id           
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+mpm::Node::Node(std::string& iLine, unsigned& id) {
+    nodeId_ = id;
+    std::istringstream inp(iLine);
+    double third;
+    inp >> nodeCoord_(0) >> nodeCoord_(1);
+    inp >> third;
+    initialiseNode();
+
+    // ## Following parameters are set to zero at the start because
+    // ## they subject to addition
+    nMass_ = 0.;
+    nMomentum_ = VectorDDIM::Zero();
+    nPressure_ = 0.;
+    nGravity_ = 0.;
+
+    // ## Print check functions
+    // std::cout << nodeId_ << "\t" << nodeCoord_ << "\n";
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F2. FUNCTION: INITIALISE NODES
+              This function initialise the node data for a new time step 
+              to start
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Node::initialiseNode() {
+    nMass_ = 0.;
+    nPressure_ = 0.;
+    nGravity_ = 0.;
+    nMomentum_ = VectorDDIM::Zero();
+    nVelocity_ = VectorDDIM::Zero();
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F7. FUNCTION: COMPUTE VELOCITY FROM NODAL MOMENTUM
+              This function compute the velocity at the node from the 
+              nodal momentum
+              v_i = P_i / M_i
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Node::computeNodalVelocityFromMomentum() {
+
+    // ## This function uses a cutoff value for the nodal mass
+    // ## inorder to avoid division by zero
+    if (std::fabs(nMass_) > 1.E-15)
+        nVelocity_ = nMomentum_ / nMass_;
+    else {
+        std::cerr << "ERROR: nodal mass is lower than the cutoff value" << "\n";
+        abort();
+    }
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F8. FUNCTION: COMPUTE NODE PRESSURE FROM THE MAPPED PRESSURE TIMES MASS
+              This function computes the pressure at nodes from the mapped 
+              values of pressure times mass from particles
+              p_i = p_i * M_i / M_i
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Node::computeNodalPressureFromMappedPressure() {
+    
+    // ## This function uses a cutoff value for the nodal mass
+    // ## inorder to avoid division by zero
+    if (std::fabs(nMass_) > 1.E-15)
+        nPressure_ = nPressure_ / nMass_;
+    else {
+        std::cerr << "ERROR: nodal mass is lower than the cutoff value" << "\n";
+        abort();
+    }
+
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+F8. FUNCTION: COMPUTE NODE GRAVITY FROM THE MAPPED VALUES FROM PARTICLES
+              This function computes the gravity at nodes from the mapped 
+              values of gravity times mass from particles
+              g_i = g_i * M_i / M_i
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+void mpm::Node::computeNodalPressureFromMappedPressure() {
+    
+    // ## This function uses a cutoff value for the nodal mass
+    // ## inorder to avoid division by zero
+    if (std::fabs(nMass_) > 1.E-15)
+        nGravity_ = nGravity_ / nMass_;
+    else {
+        std::cerr << "ERROR: nodal mass is lower than the cutoff value" << "\n";
+        abort();
+    }
+
+}

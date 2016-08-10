@@ -1,0 +1,11 @@
+mpm::MpmMesh::MpmMesh (std::ifstream& nodeFile, std::ifstream& elemFile) : mpm::Mesh_Mpm (nodeFile, elemFile) {
+
+    this -> initialiseMesh();
+
+    for (auto i : nodes_)
+        i -> initialiseNodes();
+
+    for (auto i : elements_)
+        i -> initialiseElements();
+
+}

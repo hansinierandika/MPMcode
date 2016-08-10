@@ -1,0 +1,32 @@
+gravityFlag             Note 1
+gravityAtNodesFlag      Note 2
+projectionFlag          Note 3
+massMatrixFlag          Note 4
+dt                      0.001
+numOfSteps              1
+
+
+NOTE 1:
+This flag defines the status of Gravity.
+1 : Gravity is applied 
+0 : Gravity is not applied
+
+NOTE 2:
+This flag defines how the gravity force is calculated. This flag is necessarily used in Chorin's projection method for incompressible materials. In explicit MPM solver for compressible materials, this flag is chosen as '0'. 
+1 : Gravity force is calculated at the nodes considering the Gravity is known at    the nodes. i.e. the gravity (9.81) is mapped from the particles to nodes.
+    And then (in projection method), the gravity force is calculated.
+0 : This is the general use in classical MPM solvers. In this case, the gravity
+    force is calculated at the particles and then mapped to the nodes which then
+    contributed directly to the external forces at nodes
+
+
+NOTE 3:
+This flag is necessarily used in solving incompressible materials. In other solvers, this flag is either chosen as '0' or removed from the file.
+1 : Special functions for Chorin's projection methods will be executed.
+0 : The functions for Chorin's projection method will not be executed.
+
+
+NOTE 4:
+This flag defines the type of mass matrix to be used in the analysis. This flag is also should be used in the Chorin's projection method for incompressible materials. In other solvers, this flag either can be chosen as '0' or removed from the file.
+1 : Consistent mass matrix is used in the Projection method
+0 : Lumped mass is used in the Projectionn method   

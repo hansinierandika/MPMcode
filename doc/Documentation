@@ -1,0 +1,31 @@
+Mapping Pressure From Particles To Nodes:
+        The pressure is mapped from the particles to nodes in solvers which 
+        solve pressure at nodes. This is different from the classical explicit 
+        MPM in which the pressure is calculated at particles, thus there is no
+        need to map pressure from particles to the nodes. However, in some
+        methods, such as Chorin's projection method for solving incompressible
+        Navier-Stokes equations, the pressure is solved at the nodes. In these
+        solvers, the pressure is required at the nodes. 
+        In this MPM program, there is a fuction for mapping pressure from the 
+        particles to the grid nodes. This function executes as follows:
+
+        M_i * p_i = sum (m_p * p_p * N_i(x_p));
+              p_i = M_i * p_i / M_i;
+
+Mapping Particle Gravity from Particles To Nodes:
+
+
+Defining Free Surface Nodes and Elements:  
+        This MPM program includes an algorithm for defining free surface nodes
+        and elements. This function is useful when there are special boundary
+        conditions at free surface nodes and elements. For an example, the 
+        pressure at a free surface is usually zero. This free surface pressure 
+        boundary condition is essential in Chorin's projection method for
+        incompressible NS equations.
+        The algorithm containes two criteria to define free surface nodes.
+            1. First, elements in which free surface particles are located
+               are identified.
+            2. Secondly, in these free surface elements, free surface nodes are
+               identified using particle density aroung each node. If the 
+               calculated particle density is less than a cutoff value, the 
+               node is set as a free node. 

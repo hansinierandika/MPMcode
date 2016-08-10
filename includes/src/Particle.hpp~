@@ -1,0 +1,147 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         University Of Cambridge
+File: Particle.hpp
+****************************************************************************/
+#ifndef MPM_PARTICLE_H
+#define MPM_PARTICLE_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+// boost header files
+#include <boost/numeric/ublas/vector.hpp>
+
+// eigen header files
+#include <Eigen/Dense>
+
+// mpm header files
+#include "Constants.hpp"
+#include "Node.hpp"
+#include "Element.hpp"
+#include "ParticleFun.hpp"
+#include "MaterialBase.hpp"
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+namespace mpm {
+    class Particle;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::Particle : public mpm::ParticleFunction {
+
+protected:
+    // MPM CONSTANT PARAMETERS
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+    static const unsigned dof = 3*(dim-1);
+
+    // TYPEDEF FOR POINTERS TO MPM CLASSES
+    typedef mpm::Element* ElementPtr;
+    typedef mpm::Node* NodePtr;
+    typedef mpm::material::MaterialBase* MaterialBasePtr;
+
+    // TYPEDEF FOR VECTOR CONTAINERS
+    typedef std::vector<MaterialBasePtr> VecOfMaterialBasePtr;
+
+    // TYPEDEF FOR EIGEN ROW VECTORS
+    typedef Eigen::Matrix<double, 1, dim> VectorDDIM;
+    typedef Eigen::Matrix<double, 1, dof> VectorDDOF;
+    typedef Eigen::Matrix<NodePtr,1, numNodes> VectorNPtrNN; 
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                        // FUNCTIONS
+
+public:
+
+    // F1. CONSTRUCTOR
+    Particle(unsigned& id, unsigned& matID, VectorDDIM& spacing, bool G);
+
+    // F2. INITIALISE PARTICLES
+    void initialiseParticle();
+
+    // %%%%%%%%%%% MAPPING FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%
+
+    // F3. MAP PARTICLE MASS TO GRID NODES
+    void mapParticleMassToNodes();
+
+    // F4. MAP PARTICLE VELOCITY TO GRID NODES
+    void mapParticleMomentumToNodes();
+
+    // F5. MAP PARTICLE PRESSURE TO NODES 
+    void mapParticlePressureToNodes();
+
+    // F6. MAP PARTCLE GRAVITY FORCE TO NODES
+    void mapParticleGravityToNodes();
+
+    // %%%%%%%%%%% SET PARTICLE VALUES %%%%%%%%%%%%%%%%%%%%%%%%
+
+    // S1. SET PARTICLE INITIAL STRESS
+    void setParticleInitialStress(VectorDDOF& stress) {
+        particleStress_ = stress;
+    }
+
+    // S2. SET THE PARTICLE MATERIAL
+    void setParticleMaterial(VecOfMaterialBasePtr materials) {
+        material_ = materials.at(particleMatID_);
+        particleDensity_ = material_ -> giveDensity();
+    }
+
+private:
+
+    // P1. COMPUTE PARTICLE MASS
+    void computeParticleMass();
+
+
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                     // CLASS VARIABLES
+public:
+
+    // 1. Particle SPACING : This is value is constant
+    // Only used for computing the mass at the start of computation
+    VectorDDIM particleSpacing_;
+
+    // 2. Particle MATERIAL
+    unsigned particleMatID_;
+    // 3. Pointer to the material
+    MaterialBasePtr material_;
+
+    // 4. Particle MASS : This value is constant throughout the computation
+    double particleMass_;
+    // 5. Particle VELOCITY : This value is updated at each time step
+    VectorDDIM particleVelocity_;
+    // 6. Particle PRESSURE : This value is updated at each time step
+    double particlePressure_;
+
+    // 7. Particle STRESS : This value is updated at each time step
+    VectorDDOF particleStress_;
+    // 8. Particle STRAIN : This value is updated at each time step
+    VectorDDOF particleStrain_;
+
+    // 9. Particle DENSITY : This value depends on the application
+    // For incompressible materials :- this value is kept constant (i.e. density    // variation is not linked to pressure)
+    // For compressible materials :- this value is updated at each time step (i.
+    // e. density is linked to the pressure)   
+    double particleDensity_;
+
+    // 10. Particle GRAVITy
+    VectorDDIM particleGravity_;
+
+    // 10.Particle connectivity to nodes
+    using mpm::ParticleFunction::particleNodes_;
+    // 11. Particle shape functions
+    using mpm::ParticleFunction::shapeFun_;
+
+};
+
+#include "Particle.ipp"
+
+#endif

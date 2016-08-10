@@ -1,0 +1,147 @@
+/***************************************************************************
+                          Material Point Method
+                           Shyamini Kularathna
+                         Unversity Of Cambridge
+File: MeshFun.hpp
+****************************************************************************/
+
+#ifndef MPM_MESHFUNCTIONS_H
+#define MPM_MESHFUNCTIONS_H
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// c++ header files
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <set>
+#include <functional>
+
+// boost header files
+#include <boost/numeric/ublas/vector.hpp>
+
+// header files
+#include "Constants.hpp"
+#include "Element.hpp"
+#include "Node.hpp"
+#include "Particle.hpp"
+#include "MpmParticle.hpp"
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+namespace mpm {
+    class MeshFunctions;
+    template <class T>
+    struct comparator {
+        bool operator () (const T& arg1, const T& arg2) const {
+            unsigned firstId = arg1 -> giveId();
+            unsigned secondId = arg2 -> giveId();
+            return firstId < secondId;
+        } 
+    };
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class mpm::MeshFunctions {
+
+protected:
+    static const unsigned dim = mpm::constants::DIM;
+    static const unsigned numNodes = mpm::constants::NUMNODES;
+
+    typedef mpm::Node* NodePtr;
+    typedef mpm::Element* ElementPtr;
+    typedef mpm::Particle* ParticlePtr;
+
+    // TYPEDEF FOR EIGEN
+    // U:Unsigned Dyn:Dynamic D:Double I:Int
+    typedef Eigen::VectorXi VectorUDyn;
+    // %% eigen row vectors %%
+    typedef Eigen::Matrix<unsigned, 1, dim> VectorUDIM;
+    typedef Eigen::Matrix<double, 1 , dim>  VectorDDIM;
+    typedef Eigen::Matrix<int, 1, dim>      VectorIDIM;
+    typedef Eigen::Matrix<NodePtr, 1, numNodes> VectorNPtrNN;
+    // %% eigen dynamic matrix %%
+    typedef Eigen::MatrixXi MatrixUDynDyn;
+    typedef Eigen::MatrixXd MatrixDDynDyn;
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                  // MEMEBER FUNCTIONS
+
+public:
+    // F1. CONSTRUCTOR
+    MeshFunctions(std::ifstream& meshDatFile);
+
+    // F2. READ CONSTRAINTS
+    void readVelocityConstraints(std::ifstream& velConFile);
+    void readFrictionConstraints(std::ifstream& fricConFile);
+
+    // F3. LOCATE PARTICLES IN THE MESH
+    void locateParticlesInMesh(mpm::MpmParticle& particleSet);
+
+    // F4. INITIALISE MESH FUNCTIONS
+    void initialiseMeshFunctions();
+
+    // %%%%%%%%%%%% PRINT VALUES %%%%%%%%%%%%%%%%%%%%%
+
+    // PR1. PRINT ELEMENTS AND NODES WHICH INCLUDE PARTICLES
+    void printElementsAndNodesOfParticles();
+
+
+private:
+
+    // A. CHECK PARTICLE IS INSIDE THE MESH
+    void checkParticleInsideMesh(VectorIDIM& eGrid, unsigned& pId);
+
+    // B. INSERT ELEMENTS AND NODES OF PARTICLES TO SET CONTAINERS
+    void setElementsAndNodesOfParticles(unsigned& elementId, ParticlePtr& particlePtr); 
+
+
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                 // MEMBER VARIABLES
+
+public:
+
+    std::vector<ElementPtr> allElements_;
+
+    // %%%%VELOCITY BOUNDARY CONDITIONS%%%%
+    // 1. nodes which has velocity boundary conditions
+    VectorUDyn velConstraintNodes_;
+    // 2. velocity contrained direction at each node
+    MatrixUDynDyn velConstraintState_;
+    // 3. values of velocity boundary conditions
+    MatrixDDynDyn velConstraintValue_;
+
+    // %%%%FREE SURFACE NODES AND ELEMENTS%%%%
+    // 4. pointers to free nodes
+    std::vector<NodePtr> ptrsToFreeNodes_;
+    // 5. pointers to free elements
+    std::vector<ElementPtr> ptrsToFreeElements_;
+
+    // %%%%MESH DATA FOR LOCATING PARTICLES%%%%
+    // 6. mesh spacing in each direction
+    VectorDDIM meshSpacing_;
+    // 7. number of elements in each direction
+    VectorUDIM numOfElements_;
+    // 8. corner elements
+    Eigen::Matrix<unsigned, 1, 4> cornerElements_;
+    // 9. corner nodes
+    Eigen::Matrix<unsigned, 1, 4> cornerNodes_;
+    // 10. first coordinate of the mesh
+    VectorDDIM firstCoord_;
+    // 11. last coordinate of the mesh
+    VectorDDIM lastCoord_;
+
+    // %%%% SET CONTAINER OF ELEMENTS AND NODES WHICH HAVE PARTICLES %%%%
+    // 12. element set
+    std::set<ElementPtr, mpm::comparator<ElementPtr> > pElementSet_;
+    // 13. nodes set
+    std::set<NodePtr, mpm::comparator<NodePtr> > pNodeSet_;
+ 
+
+};
+
+#include "MeshFun.ipp"
+
+#endif

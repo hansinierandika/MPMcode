@@ -1,0 +1,13 @@
+1
+Newtonian 2
+          density                 1000
+          viscosity               0.0
+ModifiedBingham 3
+          density                 1000
+          viscosity               200
+          yieldStress             244
+MohrCoulomb 4
+          density                 2100
+          frictionAngle           0.1
+
+ 
